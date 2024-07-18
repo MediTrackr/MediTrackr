@@ -1,0 +1,34 @@
+/* App.css */
+body {
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  padding: 20px;
+}
+
+/* Default styles */
+.box {
+  width: 100%;
+  height: 100px;
+  background-color: lightblue;
+}
+
+/* Media queries for responsive design */
+@media only screen and (min-width: 600px) {
+  .box {
+    background-color: lightgreen;
+  }
+}
+
+@media only screen and (min-width: 768px) {
+  .box {
+    background-color: lightcoral;
+  }
+}
+
+@media only screen and (min-width: 1024px) {
+  .box {
+    background-color: lightgoldenrodyellow;
+  }
+}
