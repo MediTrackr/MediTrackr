@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 218 27% 14%;
+    --foreground: 200 20% 96%;
+    --primary: 188 100% 50%;
+    --secondary: 220 26% 14%;
+    --accent: 6 78% 57%;
+    --border: 220 20% 25%;
+    --radius: 1rem;
+  }
+  body {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0d0f17 100%);
+    color: hsl(var(--foreground));
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .card-medical {
+    background: linear-gradient(145deg, rgba(26, 31, 46, 0.95), rgba(13, 15, 23, 0.95));
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 217, 255, 0.1);
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.7);
+  }
+  .shadow-cyan { box-shadow: 0 10px 30px -5px rgba(0, 217, 255, 0.15); }
+  .shadow-orange { box-shadow: 0 10px 30px -5px rgba(255, 107, 107, 0.15); }
+  .shadow-green { box-shadow: 0 10px 30px -5px rgba(81, 207, 102, 0.15); }
+}
