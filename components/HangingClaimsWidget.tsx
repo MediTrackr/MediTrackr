@@ -67,7 +67,7 @@ function urgencyClasses(days: number) {
   if (days >= 90)
     return { bar: "bg-red-500", text: "text-red-400", pulse: true };
   if (days >= 60)
-    return { bar: "bg-orange-400", text: "text-orange-400", pulse: false };
+    return { bar: "bg-yellow-400", text: "text-yellow-400", pulse: false };
   return { bar: "bg-yellow-400", text: "text-yellow-400", pulse: false };
 }
 
@@ -85,7 +85,6 @@ export default function HangingClaimsWidget({ claims, loading = false }: Hanging
 
   // Aggregate totals for the header badges
   const totalAmount = claims.reduce((s, c) => s + c.total_claimed, 0);
-  const maxDays = claims.length ? Math.max(...claims.map((c) => c.days_outstanding)) : 0;
 
   // Nothing to show
   if (!loading && claims.length === 0) return null;
@@ -95,7 +94,10 @@ export default function HangingClaimsWidget({ claims, loading = false }: Hanging
       {/* ── Header ── */}
       <div
         className="flex items-center justify-between px-5 py-4 cursor-pointer select-none"
+        role="button"
+        tabIndex={0}
         onClick={() => setExpanded((v) => !v)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setExpanded((v) => !v); }}
       >
         <div className="flex items-center gap-3">
           <AlertOctagon className="w-4.5 h-4.5 text-red-400 flex-shrink-0" />

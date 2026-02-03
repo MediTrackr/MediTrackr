@@ -1,0 +1,56 @@
+⚙️ What your core system should stay agnostic about
+
+Your core should NOT care about:
+
+fax vs portal vs API
+insurer brand names
+form layouts
+submission rules
+
+It should only know:
+
+- service
+- provider
+- patient reference
+- amount
+- payer type (private / public / hybrid)
+- status lifecycle
+
+Everything else is handled by components.
+
+🧠 How your system actually behaves
+
+Flow:
+
+Clinician creates claim
+System assigns payer type
+Component transforms it:
+private → receipt bundle
+public → structured claim form
+Transport layer sends it (fax/export/etc.)
+Status tracked internally
+⚖️ One important design warning
+
+Be careful not to make:
+
+“private insurance component”
+
+turn into:
+
+15 slightly different insurer hacks
+
+Instead, keep it:
+
+behavior-based, not insurer-based
+
+Otherwise you lose the benefit of abstraction.
+
+🚀 The real advantage of your approach
+
+If you do this right, you get:
+
+RAMQ changes? → only public component changes
+New private insurer? → no new architecture
+Fax replaced by API later? → transport layer swap only
+
+That’s how you avoid rebuilding the system every time Canada shifts forms (which it will).

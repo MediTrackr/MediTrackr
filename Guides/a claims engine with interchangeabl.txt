@@ -1,0 +1,20 @@
+a claims engine with interchangeable output adapters
+
+MediTrackr is a financial workflow platform built for healthcare professionals to simplify billing, insurance claims, and payment collection.
+
+It acts as a structured financial layer on top of existing clinic systems, helping practitioners convert clinical activity into insurance-ready documentation and track the full revenue cycle without changing their clinical workflow.
+
+The system is built around a modular claim engine supporting public institutions (e.g. RAMQ and federal programs) and private insurers across Canada. Claims are generated from a unified data model and transformed into payer-specific outputs such as structured forms, exportable documents, or fax-ready submissions.
+
+Core capabilities include:
+
+RAMQ card scanning for rapid claim prefill (no long-term storage of scanned images)
+Automated generation of billing and insurance claim forms
+Component-based support for public and private payers across Canada
+Claim submission workflows (fax, export, and future digital integrations)
+Real-time tracking of billed amounts, payments received, and outstanding balances
+Mobile payment collection via Stripe, allowing healthcare professionals to accept payments directly from their phone
+
+MediTrackr focuses exclusively on the financial layer of healthcare operations — not scheduling, clinical records, or full practice management — enabling seamless integration alongside existing clinic systems.
+
+The goal is to reduce administrative burden, improve billing accuracy, and give healthcare professionals clear, real-time visibility into their revenue cycle.

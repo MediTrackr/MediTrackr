@@ -2,9 +2,14 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
-import { Download, Copy, Check } from 'lucide-react';
+interface QRPaymentLinkProps {
+  invoiceId: string;
+  amount: number;
+  patientName: string;
+  patientEmail: string;
+}
 
-export default function QRPaymentLink({ invoiceId, amount, patientName, patientEmail }: any) {
+export default function QRPaymentLink({ invoiceId, amount, patientName, patientEmail }: QRPaymentLinkProps) {
   const [paymentUrl, setPaymentUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 

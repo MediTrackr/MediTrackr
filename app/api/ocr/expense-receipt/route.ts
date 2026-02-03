@@ -1,42 +1,32 @@
-// =====================================================
-// 2. API ROUTE - Expense Receipt OCR (WITH Storage)
-// File: app/api/ocr/expense-receipt/route.ts
-// =====================================================
-
 import { NextResponse } from 'next/server';
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from '@/utils/supabase/server';
+import { logAuditTrail } from '@/lib/compliance/audit-middleware';
 
 export async function POST(request: Request) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { image } = await request.json();
-    
-    // 🛡️ Guard: Validate image data
+
     if (!image || typeof image !== 'string') {
       return NextResponse.json({ error: 'Invalid or missing image data' }, { status: 400 });
     }
-    
-    const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
 
-    // 1. Call OCR API to extract receipt data
+    const base64 = image.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64, 'base64');
+
+    const formData = new FormData();
+    formData.append('document', new Blob([buffer], { type: 'image/jpeg' }), 'receipt.jpg');
+
     const ocrResponse = await fetch('https://api.mindee.net/v1/products/mindee/expense_receipts/v5/predict', {
       method: 'POST',
-      headers: {
-        'Authorization': `Token ${process.env.MINDEE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        document: base64Image,
-      }),
+      headers: { 'Authorization': `Token ${process.env.MINDEE_API_KEY}` },
+      body: formData,
     });
 
-    // 🛡️ Guard: Check API response status
     if (!ocrResponse.ok) {
       const errorText = await ocrResponse.text();
       console.error('Mindee API Error:', errorText);
@@ -46,7 +36,6 @@ export async function POST(request: Request) {
     const ocrData = await ocrResponse.json();
     const prediction = ocrData.document?.inference?.pages?.[0]?.prediction;
 
-    // 2. Extract expense details
     const expenseData = {
       vendor: prediction?.supplier_name?.value || '',
       amount: parseFloat(prediction?.total_amount?.value || '0'),
@@ -55,25 +44,15 @@ export async function POST(request: Request) {
       description: prediction?.description?.value || '',
     };
 
-    // 3. Upload receipt image to Supabase Storage
     const fileName = `receipts/${user.id}/${Date.now()}.jpg`;
-    const imageBuffer = Buffer.from(base64Image, 'base64');
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('expense-receipts')
-      .upload(fileName, imageBuffer, {
-        contentType: 'image/jpeg',
-        upsert: false,
-      });
+      .upload(fileName, buffer, { contentType: 'image/jpeg', upsert: false });
 
     if (uploadError) throw uploadError;
 
-    // 4. Get public URL for the receipt
-    const { data: { publicUrl } } = supabase.storage
-      .from('expense-receipts')
-      .getPublicUrl(fileName);
+    const { data: { publicUrl } } = supabase.storage.from('expense-receipts').getPublicUrl(fileName);
 
-    // 5. Create expense record in database
     const { data: expense, error: expenseError } = await supabase
       .from('expenses')
       .insert({
@@ -91,11 +70,12 @@ export async function POST(request: Request) {
 
     if (expenseError) throw expenseError;
 
-    return NextResponse.json({
-      success: true,
-      expense,
-      receiptUrl: publicUrl,
-    });
+    await logAuditTrail(
+      { table_name: 'expenses', record_id: expense.id, action: 'INSERT', reason: 'Expense created via OCR scan' },
+      request
+    );
+
+    return NextResponse.json({ success: true, expense, receiptUrl: publicUrl });
   } catch (error) {
     console.error('Expense OCR Error:', error);
     return NextResponse.json({ error: 'Failed to process expense receipt' }, { status: 500 });

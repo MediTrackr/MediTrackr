@@ -15,7 +15,7 @@ export default function ActivityItem({ name, amount, date, status }: ActivityIte
       <div className="text-right">
         <p className="text-primary font-bold text-sm">{amount}</p>
         <p className={`text-[9px] uppercase font-black ${
-          status === 'Paid' ? 'text-green-400' : 'text-orange-400'
+          status === 'Paid' ? 'text-green-400' : 'text-blue-400'
         }`}>
           {status}
         </p>

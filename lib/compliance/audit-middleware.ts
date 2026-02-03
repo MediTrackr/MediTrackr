@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient as createClient } from '@/lib/supabase/server';
 
 interface AuditLogEntry {
   table_name: string;
@@ -8,7 +8,7 @@ interface AuditLogEntry {
 }
 
 export async function logAuditTrail(entry: AuditLogEntry, request: Request) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const ip = request.headers.get('x-forwarded-for') || 'unknown';
   const userAgent = request.headers.get('user-agent') || 'unknown';
   

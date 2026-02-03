@@ -17,7 +17,7 @@ export default function ActionCard({
 }: ActionCardProps) {
   const colors = {
     primary: "shadow-cyan hover:border-primary/40",
-    accent: "shadow-orange hover:border-accent/40"
+    accent: "shadow-cyan hover:border-primary/40"
   };
 
   const iconColors = {
@@ -26,9 +26,12 @@ export default function ActionCard({
   };
 
   return (
-    <div 
+    <div
       className={`card-medical p-6 flex items-center gap-4 cursor-pointer transition-all ${colors[colorScheme]}`}
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); }}
     >
       <Icon className={`w-8 h-8 ${iconColors[colorScheme]}`} />
       <div>

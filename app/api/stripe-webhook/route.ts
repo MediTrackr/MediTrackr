@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
+
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { sendReceiptEmail } from '@/lib/email-service';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-11-20' });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-12-15.acacia' as Stripe.LatestApiVersion });
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,11 +113,10 @@ export async function POST(request: Request) {
 
         try {
           await sendReceiptEmail({
-            to: metadata.patientEmail || session.customer_details?.email,
+            to: (metadata.patientEmail || session.customer_details?.email) ?? '',
             patientName: metadata.patientName || 'Patient',
             amount,
             invoiceId,
-            paymentId: payment.id,
             transactionId: paymentIntentId,
           });
         } catch (e) { console.error('📧 Email soft-fail:', e); }

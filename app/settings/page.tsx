@@ -4,9 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
-import { 
-  User, Building2, Plus, ArrowLeft, Save, 
-  ClipboardList, LayoutDashboard, FileStack, PieChart, Settings, Trash2, CreditCard
+import {
+  User, Building2, Plus, ArrowLeft, Save,
+  ClipboardList, LayoutDashboard, FileStack, PieChart, Settings, Trash2, CreditCard, ShieldCheck
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -39,7 +39,7 @@ export default function SettingsPage() {
   });
 
   // Partners/Billing entities
-  const [billingEntities, setBillingEntities] = useState([]);
+  const [billingEntities, setBillingEntities] = useState<{ id?: string; name: string; phone?: string; email?: string; contact?: string }[]>([]);
   const [newEntity, setNewEntity] = useState({ name: "", phone: "", email: "", contact: "" });
 
   useEffect(() => {
@@ -126,7 +126,8 @@ export default function SettingsPage() {
     if (newEntity.name) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
+        if (!user) return;
+
         const { data, error } = await supabase
           .from('partners')
           .insert([{
@@ -271,12 +272,16 @@ export default function SettingsPage() {
                 <span className="text-xs font-bold uppercase tracking-wider">View Invoices</span>
               </Link>
               <Link href="/budgets" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all text-white/60">
-                <PieChart className="w-4 h-4 text-orange-500" />
+                <PieChart className="w-4 h-4 text-green-500" />
                 <span className="text-xs font-bold uppercase tracking-wider">View Budgets</span>
               </Link>
               <Link href="/settings" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-white shadow-cyan">
                 <Settings className="w-4 h-4 text-primary" />
                 <span className="text-xs font-bold uppercase tracking-wider">Settings</span>
+              </Link>
+              <Link href="/settings/ramq-access" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all text-white/60">
+                <ShieldCheck className="w-4 h-4 text-green-400" />
+                <span className="text-xs font-bold uppercase tracking-wider">Accès RAMQ B2B</span>
               </Link>
             </nav>
           </aside>
@@ -350,7 +355,7 @@ export default function SettingsPage() {
                   <input type="text" value={practiceData.practiceAddress} onChange={e => handlePracticeChange('practiceAddress', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Site d'Appartenance</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">Site d&apos;Appartenance</label>
                   <input type="text" value={practiceData.siteAppartenance} onChange={e => handlePracticeChange('siteAppartenance', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="space-y-1">
@@ -361,11 +366,11 @@ export default function SettingsPage() {
             </div>
 
             {/* BANKING INFORMATION */}
-            <div className="card-medical p-8 border border-white/5 bg-black/40 rounded-2xl relative shadow-orange">
-              <div className="absolute top-0 left-0 w-1.5 h-full bg-orange-500" />
+            <div className="card-medical p-8 border border-white/5 bg-black/40 rounded-2xl relative shadow-green">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500" />
               <div className="flex items-center gap-3 mb-6">
-                <CreditCard className="text-orange-400 w-5 h-5" />
-                <h3 className="text-sm font-bold text-orange-400 uppercase tracking-widest">Banking Information</h3>
+                <CreditCard className="text-green-400 w-5 h-5" />
+                <h3 className="text-sm font-bold text-green-400 uppercase tracking-widest">Banking Information</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2 space-y-1">
@@ -402,7 +407,7 @@ export default function SettingsPage() {
                         <p className="text-xs text-white/40">{entity.contact} • {entity.email || entity.phone}</p>
                       </div>
                       <Button
-                        onClick={() => deleteBillingEntity(entity.id)}
+                        onClick={() => deleteBillingEntity(entity.id!)}
                         size="sm"
                         variant="ghost"
                         className="text-red-400 hover:bg-red-500/10"

@@ -1,0 +1,52 @@
+The URL you are seeing indicates that the **OAuth PKCE flow** (the handshake between Supabase and your app) has successfully returned a temporary authorization code, but your application isn't successfully "exchanging" that code for a permanent user session.
+
+Based on the files you provided, here is why you are stuck on that URL and how to fix it:
+
+### 1. The "Code Exchange" Logic is on the Wrong Page
+In your `Home` component (`page_20.tsx`), you have logic to catch the `code` parameter and exchange it for a session[cite: 20]. However, in a standard Next.js App Router setup, the **Redirect URL** set in your Supabase dashboard usually points to an API route (like `/auth/callback`) rather than the root homepage.
+
+*   **The Issue:** If your Supabase configuration is sending users to `localhost:3000/` with the code, but your `Home` component's `useEffect` fails to run or encounters a race condition with the `OnboardingCheck` wrapper, the session is never established[cite: 19, 20].
+*   **The Trace:** Your code in `Home` attempts `supabase.auth.exchangeCodeForSession(code)` and then tries to replace the URL with `/dashboard`[cite: 20]. If you are still seeing the code in the URL, that promise is likely failing or not being triggered.
+
+### 2. Conflicting Supabase Clients
+There is a discrepancy in how you are calling the Supabase client:
+*   In `Home` (`page_20.tsx`), you import from `@/lib/supabase/client`[cite: 20].
+*   In your budget pages (`page_15.tsx` and `page_16.tsx`), you import from `@/utils/supabase/client`[cite: 15, 16].
+*   **The Result:** If these two files initialize the client differently (e.g., one uses different cookie settings or a different environment variable), the session created by the `Home` page might not be "visible" to the rest of the app.
+
+### 3. The OnboardingCheck "Gate"
+Your `layout.tsx` wraps the entire application in an `<OnboardingCheck>` component[cite: 19]. 
+*   If this component checks for a session before the `exchangeCodeForSession` logic in your `Home` page finishes, it might be blocking the execution or redirecting the user back to a login state prematurely[cite: 19, 20].
+
+---
+
+### How to Fix It
+
+**Step 1: Check your Supabase Dashboard**
+Go to **Authentication > Settings > Redirect URLs**. Ensure the URL matches exactly where your code-handling logic is. If you want it handled on the homepage, it must be `http://localhost:3000`.
+
+**Step 2: Consolidate the Logic**
+Instead of handling the code on the `Home` page, it is highly recommended to create a dedicated route for this. Create a file at `app/auth/callback/route.ts`:
+
+```typescript
+import { createClient } from '@/utils/supabase/server' // Use server client
+import { NextResponse } from 'next/server'
+
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
+
+  if (code) {
+    const supabase = createClient()
+    await supabase.auth.exchangeCodeForSession(code)
+  }
+
+  // URL to redirect to after sign in process completes
+  return NextResponse.redirect(`${origin}/dashboard`)
+}
+```
+
+**Step 3: Fix the Style Discrepancies**
+To resolve your language and login frustration, ensure your `globals.css` and `layout.tsx` use consistent variables. Your `globals.css` currently uses a cyan `--primary` (`188 100% 50%`), which contradicts your design goals[cite: 18]. 
+
+Changing your primary variable to an orange value (e.g., `25 100% 50%`) will align the buttons in your `NewBudget.tsx` and `Home` components with your project's identity[cite: 16, 18, 20].</OnboardingCheck>

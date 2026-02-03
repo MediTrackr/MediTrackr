@@ -1,133 +1,139 @@
 "use client";
-import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  FileText,
-  DollarSign,
-  Wallet,
-  TrendingUp,
-  Settings,
-  LogOut,
-  Receipt,
-  Building2,
-  Globe,
-  Shield,
-  Plane,
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScanText, FilePlus, Eye, CreditCard, QrCode, ChevronDown, Send } from "lucide-react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { useRouter } from "next/navigation";
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-  badge?: string;
-}
-
-const NAV_SECTIONS = [
-  {
-    title: "Main",
-    items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Invoices", href: "/invoices", icon: FileText },
-      { label: "Payments", href: "/payments", icon: DollarSign },
-      { label: "Expenses", href: "/expenses", icon: Wallet },
-      { label: "Budget", href: "/budget", icon: TrendingUp },
-    ],
+const T = {
+  fr: {
+    quickActions: "Actions rapides",
+    scanReceipt: "Scanner carte / reçu / ID",
+    payment: "Paiement",
+    stripePayment: "Paiement Stripe",
+    importQr: "Importer un code QR",
+    management: "Gestion",
+    invoices: "Factures",
+    payments: "Paiements",
+    budget: "Budget",
+    dailyBatch: "Lot du jour",
+    systemStatus: "État du système",
+    ocrReady: "Prêt",
+    ramqOnline: "En ligne",
   },
-  {
-    title: "Claims",
-    items: [
-      { label: "RAMQ", href: "/claims/ramq", icon: Receipt },
-      { label: "Federal", href: "/claims/federal", icon: Shield },
-      { label: "Out-of-Province", href: "/claims/out-of-province", icon: Globe },
-      { label: "Diplomatic", href: "/claims/diplomatic", icon: Plane },
-      { label: "Private Insurance", href: "/claims/insurance", icon: Building2 },
-    ],
+  en: {
+    quickActions: "Quick actions",
+    scanReceipt: "Scan card / receipt / ID",
+    payment: "Payment",
+    stripePayment: "Stripe payment",
+    importQr: "Import a QR code",
+    management: "Management",
+    invoices: "Invoices",
+    payments: "Payments",
+    budget: "Budget",
+    dailyBatch: "Today's batch",
+    systemStatus: "System status",
+    ocrReady: "Ready",
+    ramqOnline: "Online",
   },
-] as const;
+};
 
-export default function Sidebar() {
-  const pathname = usePathname();
-  const router = useRouter();
+export default function Sidebar({ lang = "fr" }: { lang?: "fr" | "en" }) {
   const supabase = createClient();
+  const [isManagementOpen, setIsManagementOpen] = useState(true);
+  const [draftCount, setDraftCount] = useState(0);
+  const t = T[lang];
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
+  useEffect(() => {
+    async function fetchDraftCount() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const [ramq, federal, outProv, diplo] = await Promise.all([
+        supabase.from("ramq_claims").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "draft"),
+        supabase.from("federal_claims").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "draft"),
+        supabase.from("out_of_province_claims").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "draft"),
+        supabase.from("diplomatic_claims").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "draft"),
+      ]);
+
+      setDraftCount(
+        (ramq.count || 0) + (federal.count || 0) + (outProv.count || 0) + (diplo.count || 0)
+      );
+    }
+    fetchDraftCount();
+  }, []);
 
   return (
-    <aside className="lg:col-span-1 space-y-6">
-      {/* Navigation Sections */}
-      {NAV_SECTIONS.map((section) => (
-        <nav key={section.title} className="card-medical p-4 space-y-2">
-          <h3 className="text-[9px] font-bold uppercase tracking-widest text-white/40 px-3 mb-3">
-            {section.title}
-          </h3>
-          <div className="space-y-1">
-            {section.items.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
+    <div className="lg:col-span-1 space-y-4">
+      <div className="card-medical p-4 shadow-cyan space-y-2">
+        <h3 className="text-xs font-bold text-primary/50 uppercase tracking-widest mb-4">{t.quickActions}</h3>
+        <Link href="/dashboard/scan" className="block">
+          <Button variant="default" className="w-full justify-start gap-3 shadow-cyan bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30">
+            <ScanText className="w-4 h-4" /> {t.scanReceipt}
+          </Button>
+        </Link>
+      </div>
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
-                    transition-all duration-200 group relative overflow-hidden
-                    ${
-                      isActive
-                        ? "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
-                        : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
-                    }
-                  `}
-                >
-                  {/* Active indicator bar */}
-                  {isActive && (
-                    <span className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
-                  )}
+      <div className="card-medical p-4 shadow-green space-y-3">
+        <h3 className="text-xs font-bold text-green-400/50 uppercase tracking-widest mb-2">{t.payment}</h3>
+        <Button variant="outline" className="w-full justify-start gap-3 hover:bg-green-500/10 border-green-400/30">
+          <CreditCard className="w-4 h-4 text-green-400" /> {t.stripePayment}
+        </Button>
+        <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer">
+          <QrCode className="w-8 h-8 mx-auto mb-2 text-primary/50" />
+          <p className="text-xs text-foreground/60">{t.importQr}</p>
+        </div>
+      </div>
 
-                  <Icon
-                    className={`w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-110 ${
-                      isActive ? "text-primary" : ""
-                    }`}
-                  />
-                  <span className="flex-1 truncate">{item.label}</span>
+      <div className="card-medical p-4 shadow-cyan space-y-4">
+        <button
+          onClick={() => setIsManagementOpen(!isManagementOpen)}
+          className="w-full flex items-center justify-between text-xs font-bold text-foreground/50 uppercase tracking-widest hover:text-foreground/70 transition-colors"
+        >
+          <span>{t.management}</span>
+          <ChevronDown className={`w-4 h-4 transition-transform ${isManagementOpen ? "rotate-180" : ""}`} />
+        </button>
 
-                  {item.badge && (
-                    <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-primary/20 text-primary rounded-md border border-primary/30">
-                      {item.badge}
+        {isManagementOpen && (
+          <>
+            <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+              <Link href="/dashboard/invoice" className="block">
+                <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-primary/10 text-foreground/80">
+                  <FilePlus className="w-4 h-4" /> {t.invoices}
+                </Button>
+              </Link>
+              <Link href="/dashboard/payment" className="block">
+                <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-green-500/10 text-foreground/80">
+                  <CreditCard className="w-4 h-4 text-green-400" /> {t.payments}
+                </Button>
+              </Link>
+              <Link href="/dashboard/budget" className="block">
+                <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-green-500/10 text-foreground/80">
+                  <Eye className="w-4 h-4 text-green-400" /> {t.budget}
+                </Button>
+              </Link>
+              <Link href="/dashboard/batch" className="block">
+                <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-primary/10 text-foreground/80 relative">
+                  <Send className="w-4 h-4 text-primary" />
+                  {t.dailyBatch}
+                  {draftCount > 0 && (
+                    <span className="ml-auto flex items-center justify-center w-5 h-5 rounded-full bg-primary text-black text-[10px] font-black">
+                      {draftCount > 99 ? "99+" : draftCount}
                     </span>
                   )}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-      ))}
+                </Button>
+              </Link>
+            </div>
 
-      {/* Bottom actions */}
-      <div className="card-medical p-4 space-y-2">
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-all"
-        >
-          <Settings className="w-4 h-4" />
-          <span>Settings</span>
-        </Link>
-
-        <button
-          onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>Sign Out</span>
-        </button>
+          </>
+        )}
       </div>
-    </aside>
+
+      <div className="card-medical p-4 shadow-cyan">
+        <h3 className="text-xs font-bold text-primary/50 uppercase tracking-widest mb-2">{t.systemStatus}</h3>
+        <p className="text-[10px] opacity-60">OCR : <span className="text-green-400">{t.ocrReady}</span></p>
+        <p className="text-[10px] opacity-60">RAMQ : <span className="text-green-400">{t.ramqOnline}</span></p>
+      </div>
+    </div>
   );
 }

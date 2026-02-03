@@ -1,0 +1,67 @@
+Focusing strictly on the functional logic and structural integrity of **ViewInvoices.tsx**, **NewPaymentPage**, and **NewInvoice.tsx**, here are the technical errors and their required fixes.
+
+### 1. Authentication & Security (ViewInvoices.tsx & NewPaymentPage)
+*   **The Error**: Both components use `supabase.auth.getUser()` but do not handle the `null` or `error` state beyond a simple `return`[cite: 9, 12]. This causes the UI to hang indefinitely in a "Loading" state for unauthenticated users[cite: 12].
+*   **The Fix**: Add an active redirect to the login page immediately if no user is found.
+    ```tsx
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    ```
+
+### 2. State Sync & Database Integrity (NewPaymentPage)
+*   **The Error**: Recording a payment only inserts a row into the `payments` table[cite: 9]. It fails to update the `status` of the linked invoice in the `invoices` table[cite: 9].
+*   **The Fix**: Implement a cross-table update within `handleSubmit`. When a payment is successfully saved, trigger an update to the corresponding `invoice_id` to change its status to 'paid' or 'partial' based on the amount[cite: 9].
+
+### 3. Filter Logic Errors (ViewInvoices.tsx)
+*   **The Error**: The `search` filter is restricted to `patient_name`, `invoice_number`, and `partner_type`[cite: 12]. In a medical context, searching by health card number is a primary workflow requirement[cite: 12].
+*   **The Fix**: Expand the `filtered` useMemo to include `patient_ramq` in the search query[cite: 12].
+    ```tsx
+    list = list.filter(i =>
+      i.patient_name?.toLowerCase().includes(q) ||
+      i.patient_ramq?.toLowerCase().includes(q) || // Add this line
+      i.invoice_number?.toLowerCase().includes(q)
+    );
+    ```
+
+### 4. Calculation & Interaction Errors (NewInvoice.tsx)
+*   **The Error**: The `calculateTotal` function in the invoice creation page is defined but is not actively recalculating when line item inputs change[cite: 8]. The inputs lack a coordinated `onChange` handler to update the state[cite: 8].
+*   **The Fix**: Bind each line item `input` to a state-update function that triggers `calculateTotal` on every keystroke to ensure the "Total" field is always accurate before submission[cite: 8].
+
+### 5. Data Categorization Gaps (ViewInvoices.tsx)
+*   **The Error**: The `groupInvoices` function utilizes a hardcoded `PARTNER_LABEL` map[cite: 12]. If a record has a `partner_type` not defined in that map, the grouping key defaults to "Privé," which can lead to misclassification of insurance or government data[cite: 12].
+*   **The Fix**: Implement a dynamic fallback or an "Uncategorized" bucket to prevent data from being automatically assigned to the wrong financial group[cite: 12].
+
+### 6. Component Routing Conflict (Source 10 & 11)
+*   **The Error**: Source 10 explicitly states it is "Superseded" by a different file path, but Source 11 still attempts to export from a generic `ViewInvoices` file[cite: 10, 11]. This creates a risk of importing stale logic or duplicate components[cite: 10, 11].
+*   **The Fix**: Consolidate all logic into the `app/dashboard/invoice/new/page.tsx` structure and delete the superseded barrel files to ensure Next.js uses the most recent version of the code[cite: 10, 11].
+
+The **NewInvoicePage** (`page_6.tsx`) is a significantly more complex implementation than your previous versions, integrating RAMQ-specific logic, health card scanning, and professional category configurations[cite: 13].
+
+Below are the technical errors and functional fixes identified within the code:
+
+### 1. Silent Data Parsing Failure
+*   **The Error**: The `useEffect` for loading `places_of_work` uses a generic `try-catch` block that silences errors[cite: 13]. If the JSON in the database is malformed or the schema has changed, the "Place of Work" selector will simply never appear, leaving the user with no feedback on why their locations are missing[cite: 13].
+*   **The Fix**: Add a specific `console.error` within the catch block to track parsing issues and initialize `places_of_work` to an empty array `[]` explicitly if parsing fails to avoid "undefined" map errors[cite: 13].
+
+### 2. State Desynchronization in Search
+*   **The Error**: The component uses a shared `searchTerm` state for all line items[cite: 13]. If you have multiple rows and try to search for a code on Row 2, the search term and its results (`availableCodes`) are globally shared, causing results to pop up on all rows simultaneously or overwrite data in the wrong row[cite: 13].
+*   **The Fix**: Move the `searchTerm` and `availableCodes` logic into a separate `LineItem` sub-component or convert the `lineItems` state to include a `searching: boolean` property and a unique search string per ID[cite: 13].
+
+### 3. Missing Total Calculation in Submission
+*   **The Error**: The `calculateTotal` function is defined and used for display, but in `handleSubmit`, the `totalAmount` is calculated once and then passed into the database[cite: 13]. There is no server-side validation or re-calculation check, which can lead to "rounding drift" if the user rapidly changes quantities just before clicking "Save"[cite: 13].
+*   **The Fix**: Ensure `totalAmount` is freshly derived from the latest `lineItems` state directly inside the `handleSubmit` function rather than relying on any cached UI value[cite: 13].
+
+### 4. RAMQ Schema Mismatch (Status Handling)
+*   **The Error**: When `partnerType === 'ramq'`, the code inserts a record into `ramq_claims` with a status of `'draft'`[cite: 13]. However, the code does not update the `patient_count` in the `profiles` table even if a "Prise en charge" code (which affects patient count) is used[cite: 13].
+*   **The Fix**: Add an `await supabase.from('profiles').update(...)` call inside the submission logic if an obstetrics or primary care "Prise en charge" code is detected to keep the user's `patientCount` in sync with their claims[cite: 13].
+
+### 5. Incomplete Object Mapping in Update
+*   **The Error**: The `updateLineItem` function uses a simple spread: `{...item, [field]: value}`[cite: 13]. When updating `quantity`, it uses `parseInt(value) || 1`[cite: 13]. If a user clears the input (empty string), it defaults to `1`, making it impossible for a user to delete the number and type a new one starting with a different digit without the UI fighting them[cite: 13].
+*   **The Fix**: Allow the state to hold an empty string temporarily or use a debounced update for the numeric calculation[cite: 13].
+
+### 6. Logic Loop in Code Selection
+*   **The Error**: `handleSelectCode` calls `resolveObstetricsCode`, which checks `patientCount` to decide between codes (e.g., `15825` vs `15826`)[cite: 13]. If the `patientCount` changes *after* the code is selected but *before* the invoice is saved, the claim will be submitted with the wrong code for that threshold[cite: 13].
+*   **The Fix**: Re-run the `resolveObstetricsCode` logic inside `handleSubmit` just before final insertion to ensure the code matches the current profile stats[cite: 13].
+```

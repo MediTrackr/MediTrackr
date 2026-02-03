@@ -40,5 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.env.local
-sripe.exe
+# stripe cli binary
+stripe.exe
+stripe

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { AlertTriangle, ChevronDown, ChevronUp, X, Eye } from "lucide-react";
 import Link from "next/link";
 
@@ -82,7 +82,7 @@ function detectDiscrepancies(claims: RawClaim[]): DiscrepancyItem[] {
       claim.patient_name?.toLowerCase().trim(),
       claim.patient_ramq || claim.patient_federal_id || "",
       claim.service_date,
-      codes.map((c) => c.code).sort().join(","),
+      codes.map((c) => c.code).sort((a, b) => a.localeCompare(b)).join(","),
     ].join("|");
 
     if (seen.has(dedupKey)) {
@@ -157,10 +157,10 @@ const SEVERITY_STYLES = {
     label: "Critical",
   },
   warning: {
-    dot: "bg-orange-400",
-    text: "text-orange-400",
-    border: "border-orange-500/30",
-    bg: "bg-orange-500/8",
+    dot: "bg-yellow-400",
+    text: "text-yellow-400",
+    border: "border-yellow-500/30",
+    bg: "bg-yellow-500/8",
     label: "Warning",
   },
   info: {
@@ -177,17 +177,12 @@ const SEVERITY_STYLES = {
 // ---------------------------------------------------------------------------
 export default function DiscrepancyAlert({ claims, dismissible = true }: DiscrepancyAlertProps) {
   const [dismissed, setDismissed] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [alerts, setAlerts] = useState<DiscrepancyItem[]>([]);
+  const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    const detected = detectDiscrepancies(claims);
-    setAlerts(detected);
-    // Auto-expand if there are critical items
-    if (detected.some((a) => a.severity === "critical")) {
-      setExpanded(true);
-    }
-  }, [claims]);
+  const alerts = useMemo(() => detectDiscrepancies(claims), [claims]);
+  const hasCritical = alerts.some((a) => a.severity === "critical");
+  // Auto-expand for critical alerts unless user has manually toggled
+  const expanded = manualExpanded !== null ? manualExpanded : hasCritical;
 
   if (dismissed || alerts.length === 0) return null;
 
@@ -195,15 +190,18 @@ export default function DiscrepancyAlert({ claims, dismissible = true }: Discrep
   const warningCount = alerts.filter((a) => a.severity === "warning").length;
 
   return (
-    <div className="card-medical border-l-4 border-orange-400 overflow-hidden">
+    <div className="card-medical border-l-4 border-yellow-400 overflow-hidden">
       {/* ── Header row ── */}
       <div
         className="flex items-center justify-between px-5 py-3.5 cursor-pointer select-none"
-        onClick={() => setExpanded((v) => !v)}
+        role="button"
+        tabIndex={0}
+        onClick={() => setManualExpanded(!expanded)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setManualExpanded(!expanded); }}
       >
         <div className="flex items-center gap-3">
-          <AlertTriangle className="w-4.5 h-4.5 text-orange-400 flex-shrink-0" />
-          <span className="text-xs font-bold text-orange-400 uppercase tracking-widest">
+          <AlertTriangle className="w-4.5 h-4.5 text-yellow-400 flex-shrink-0" />
+          <span className="text-xs font-bold text-yellow-400 uppercase tracking-widest">
             Discrepancy Alert
           </span>
           {/* pill badges */}
@@ -215,8 +213,8 @@ export default function DiscrepancyAlert({ claims, dismissible = true }: Discrep
               </span>
             )}
             {warningCount > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/12 border border-orange-500/25 text-[9px] font-bold text-orange-400 uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/12 border border-yellow-500/25 text-[9px] font-bold text-yellow-400 uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
                 {warningCount} Warning
               </span>
             )}

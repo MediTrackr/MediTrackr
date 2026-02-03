@@ -1,0 +1,90 @@
+The payment tool in **`ViewPayments.tsx`** is functionally solid for a standard billing system, but for **Meditrackr**, there are some specific architectural and aesthetic issues that need to be addressed to stay consistent with the rest of your platform.
+
+### Functional Issues
+
+*   **Missing Auth Guards**: The `fetchData` function checks for a `user` but does not redirect if one is missing[cite: 7]. This will leave the user on a blank, loading dashboard rather than sending them to login[cite: 7].
+*   **Static RAMQ Meta**: While you have `ramq` listed in `METHOD_META`, RAMQ payments in Montreal typically follow a strict 14-day cycle[cite: 7]. The tool currently treats them as standard manual entries rather than automated "Statement of Account" reconciliations[cite: 7].
+*   **Source Filter Logic**: The `filtered` useMemo returns an empty array `[]` when the `pending` tab is active[cite: 7]. While this prevents double-rendering with the `PendingInvoices` view, it might be cleaner to handle the "Pending" logic entirely within the main filter to allow for searching across both paid and unpaid items[cite: 7].
+
+### Aesthetic Inconsistencies
+
+*   **Color Leakage (Orange)**: In `ViewPayments.tsx`, you are using `text-orange-400` and `border-orange-500/20` for "À encaisser" (To be Cashed)[cite: 7]. Per your recent corrections, **orange is being purged** from the Meditrackr/ELIUS ecosystem.
+*   **New Invoice Inconsistency**: In `NewInvoicePage` (`source 8`), you are using `border-orange-400` for the Services section[cite: 8]. This should be updated to your medical cyan or deep blue to maintain the "dark glassmorphism" look[cite: 8].
+
+---
+
+### Recommended Fixes
+
+#### 1. Purge Orange & Update Branding
+Replace the orange highlights with a "Medical Blue" or "Success Cyan" to align with your platform's new identity.
+
+```tsx
+// In ViewPayments.tsx - Change stats row colors[cite: 7]
+{ label: "À encaisser", value: `$${stats.outstanding.toFixed(2)}`, color: "text-blue-400", border: "border-blue-500/20" }
+
+// In NewInvoicePage.tsx - Change section border[cite: 8]
+<div className="card-medical p-6 border-l-4 border-blue-500">
+  <h2 className="text-xs font-bold text-blue-400 uppercase tracking-widest">
+    Services / Procedures
+  </h2>
+  {/* ... */}
+</div>
+```
+
+#### 2. Strengthen Auth Redirects
+Add `useRouter` to handle unauthorized access in `ViewPayments.tsx`.
+
+```tsx
+// Inside ViewPaymentsPage component[cite: 7]
+const router = useRouter();
+
+async function fetchData() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/login"); // Ensure the user is kicked to login if session is gone[cite: 7]
+      return;
+    }
+    // ... existing fetch logic
+  }
+}
+```
+
+#### 3. Standardize Date Formatting
+You are using `fr-CA` for the date labels but `toLocaleDateString` for the items[cite: 7]. To keep the UI tight, ensure all currency and date helpers use a unified "medical ledger" format.
+
+---
+
+### Summary of Component Health
+| Feature | Status | Notes |
+| :--- | :--- | :--- |
+| **Data Fetching** | 🟢 Good | Efficiently uses `Promise.all` for parallel requests[cite: 7]. |
+| **Grouping** | 🟢 Good | Date/Method/Source grouping is very useful for tax audits[cite: 7]. |
+| **Branding** | 🔴 Needs Work | Contains forbidden orange elements and "accent" colors[cite: 7, 8]. |
+| **Auth** | 🟡 Partial | Has a user check but lacks a proactive redirect[cite: 7]. |
+
+Based on the code for **ViewPayments.tsx** and **NewInvoice.tsx**, here are the specific fixes to align these tools with the **Meditrackr** requirements and your branding standards:
+
+### 1. Branding & Aesthetic Purge (Orange Removal)
+You have established that orange is no longer part of the project identity. Several files still use it for status indicators and borders.
+
+*   **ViewPayments.tsx**: Change the "À encaisser" (To be Cashed) stat card from `text-orange-400` to `text-blue-400` or `text-cyan-400`[cite: 7].
+*   **ViewPayments.tsx**: Update the "Pending" tab badge and overdue status indicators to use a deep red for urgency or blue for standard pending, removing all `orange-500` references[cite: 7].
+*   **NewInvoice.tsx**: The "Services / Procedures" section currently uses `border-orange-400` and `text-orange-400`[cite: 8]. Change this to `border-primary` (cyan) to maintain the "dark glassmorphism" consistency[cite: 8].
+
+### 2. Authentication & Navigation Logic
+The current payment view checks for a user session but doesn't handle the "failure" state actively.
+
+*   **Add Proactive Redirects**: In `ViewPayments.tsx`, if `supabase.auth.getUser()` returns no user, the app should immediately call `router.push("/login")` to prevent the UI from hanging in a loading state[cite: 7].
+*   **Fix Return Paths**: Ensure the "Back to Dashboard" buttons in both files point to your actual dashboard route (likely `/dashboard`) and use the Next.js `Link` component to avoid full page reloads[cite: 7, 8].
+
+### 3. Functional Revisions for Meditrackr
+*   **Filter Logic in ViewPayments**: Currently, when the `pending` tab is active, the `filtered` list returns an empty array `[]`[cite: 7]. This makes the search bar useless for finding specific pending invoices[cite: 7]. 
+    *   **Fix**: Update the `filtered` useMemo to include `pendingInvs` when the tab is set to "pending," allowing the user to search for patients with outstanding balances[cite: 7].
+*   **Invoice Item Calculation**: In `NewInvoice.tsx`, the `calculateTotal` function is defined but not actually tied to the `onChange` events of the input fields[cite: 8]. 
+    *   **Fix**: Update the line item inputs to use `value` and `onChange` handlers so the total updates in real-time as you type the price or quantity[cite: 8].
+*   **RAMQ Compatibility**: Since this is for medical billing, add a "Statement Period" or "Billing Cycle" field to the `NewPayment` logic to better track the 14-day RAMQ reimbursement cycles rather than treating them as one-off cash payments[cite: 7].
+
+### 4. Code Stability (Type Safety)
+*   **Strict Typing**: In `ViewPayments.tsx`, the `groupPayments` function and `methodTotals` useMemo rely on string keys that might be undefined[cite: 7]. 
+    *   **Fix**: Add a fallback for `payment_method` (e.g., `p.payment_method || 'unknown'`) to prevent the app from crashing when encountering a record with missing metadata[cite: 7].

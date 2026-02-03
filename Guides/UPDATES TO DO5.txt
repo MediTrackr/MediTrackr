@@ -1,0 +1,42 @@
+The code for `NewInvoicePage` (`page_16.tsx` and `page_17.tsx`) successfully implements the glassmorphism aesthetic and a modular layout[cite: 16, 17]. However, it contains several functional "dead ends" where the UI is not connected to the underlying state, rendering it broken for actual use.
+
+### 1. "Uncontrolled" Input Syndrome
+*   **The Problem**: While you have a `lineItems` state, the inputs in the JSX are not "controlled"[cite: 16, 17]. They lack `value` and `onChange` props[cite: 16, 17].
+*   **The Consequence**: When a user types a description or price, the `lineItems` state remains empty or at default values[cite: 16, 17]. Consequently, `calculateTotal()` will always return **$0.00** regardless of what is typed in the UI[cite: 16, 17].
+
+### 2. State Mutability Issues
+*   **The Problem**: The `addLineItem` function uses `Date.now()` for IDs[cite: 16, 17]. If a user clicks the button twice in the same millisecond (rare but possible with rapid clicks), they will generate duplicate keys, which can crash the React render loop[cite: 16, 17].
+*   **The Fix**: Use `crypto.randomUUID()` or a simple counter to ensure unique identifiers for each service line.
+
+### 3. Missing Form State
+*   **The Problem**: The **Patient Information** (Name, RAMQ Number) and **Invoice Details** (Date, Due Date) sections have no state management at all[cite: 16, 17]. 
+*   **The Consequence**: When the user clicks "Save Invoice," there is no state object to send to Supabase[cite: 16, 17]. The data entered into these fields exists only in the browser's DOM and is lost the moment the function finishes.
+
+### 4. Style Constraint Violations
+*   **The Problem**: You are using `shadow-cyan` on the Save button[cite: 16, 17]. 
+*   **The Conflict**: Your established design language for Boxkit is **black/orange**[cite: 16]. Introducing cyan shadows breaks the brand consistency you've defined in your CSS modules.
+
+### 5. Accessibility and Validation
+*   **The Problem**: There is no validation on the RAMQ Number field (which should follow the `XXXX XXXX XXXX` format) or the Price fields[cite: 16, 17].
+*   **The Risk**: Users could accidentally save an invoice with a negative price or a malformed medical ID, leading to database rejection or billing errors.
+
+### Recommended Fix Pattern
+You need to implement a central `onChange` handler for the lines:
+
+```tsx
+const updateLineItem = (id, field, value) => {
+  setLineItems(lineItems.map(item => 
+    item.id === id ? { ...item, [field]: value } : item
+  ));
+};
+```
+Then apply this to your inputs:
+```tsx
+<input 
+  type="number" 
+  value={item.unitPrice}
+  onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value))}
+  // ... rest of props
+/>
+```
+

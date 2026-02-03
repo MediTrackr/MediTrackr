@@ -8,14 +8,26 @@
     --foreground: 200 20% 96%;
     --primary: 188 100% 50%;
     --secondary: 220 26% 14%;
-    --accent: 6 78% 57%;
+    --accent: 217 91% 60%;
     --border: 220 20% 25%;
     --radius: 1rem;
   }
+
+  html {
+    background-color: #0d0f17;
+  }
+
   body {
     background: linear-gradient(135deg, #1a1f2e 0%, #0d0f17 100%);
     color: hsl(var(--foreground));
     min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -29,4 +41,5 @@
   .shadow-cyan { box-shadow: 0 10px 30px -5px rgba(0, 217, 255, 0.15); }
   .shadow-orange { box-shadow: 0 10px 30px -5px rgba(255, 107, 107, 0.15); }
   .shadow-green { box-shadow: 0 10px 30px -5px rgba(81, 207, 102, 0.15); }
+  .text-glow { filter: drop-shadow(0 0 12px rgba(0, 217, 255, 0.5)); }
 }

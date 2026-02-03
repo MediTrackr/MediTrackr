@@ -117,22 +117,22 @@ export default function NewInvoicePage() {
             </div>
 
             {/* Line Items */}
-            <div className="card-medical p-6 border-l-4 border-orange-400">
+            <div className="card-medical p-6 border-l-4 border-primary">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xs font-bold text-orange-400 uppercase tracking-widest">
+                <h2 className="text-xs font-bold text-primary uppercase tracking-widest">
                   Services / Procedures
                 </h2>
                 <Button 
                   onClick={addLineItem}
                   size="sm" 
-                  className="gap-2 bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20"
+                  className="gap-2 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
                 >
                   <Plus className="w-4 h-4" /> Add Line
                 </Button>
               </div>
 
               <div className="space-y-3">
-                {lineItems.map((item, index) => (
+                {lineItems.map((item) => (
                   <div key={item.id} className="grid grid-cols-12 gap-3 items-end">
                     <div className="col-span-5 space-y-1">
                       <label className="text-[9px] uppercase font-bold opacity-40">Description</label>

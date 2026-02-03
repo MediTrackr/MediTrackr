@@ -1,4 +1,4 @@
-export function redactPII(data: any, fieldsToRedact: string[]): any {
+export function redactPII(data: Record<string, unknown>, fieldsToRedact: string[]): Record<string, unknown> {
   const redacted = { ...data };
   fieldsToRedact.forEach(field => {
     if (redacted[field]) {

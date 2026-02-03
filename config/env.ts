@@ -51,8 +51,8 @@ const serverSchema = z.object({
     .startsWith("whsec_", "STRIPE_WEBHOOK_SECRET must start with whsec_"),
 
   // ── OCR — Mindee ─────────────────────────────────────────────────────────
-  /** Mindee API key for health-card OCR. */
-  MINDEE_API_KEY: z.string().min(1, "MINDEE_API_KEY is required"),
+  /** Mindee API key for expense-receipt OCR. Optional — omit to disable receipt scanning. */
+  MINDEE_API_KEY: z.string().min(1).optional(),
 
   // ── Email — Resend ───────────────────────────────────────────────────────
   /** Resend API key (re_…).  Use a "Sending Only" key in production. */

@@ -8,8 +8,17 @@ import React, { useState } from "react";
 import { Camera, Upload, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+interface ScannedExpense {
+  vendor: string;
+  amount: number;
+  date: string;
+  category: string;
+  description: string;
+  receipt_url?: string;
+}
+
 interface ExpenseReceiptScannerProps {
-  onExpenseCreated: (expense: any) => void;
+  onExpenseCreated: (expense: ScannedExpense) => void;
 }
 
 export default function ExpenseReceiptScanner({ onExpenseCreated }: ExpenseReceiptScannerProps) {
@@ -57,12 +66,12 @@ export default function ExpenseReceiptScanner({ onExpenseCreated }: ExpenseRecei
   };
 
   return (
-    <div className="card-medical p-6 border-l-4 border-orange-400">
-      <h3 className="text-xs font-bold text-orange-400 uppercase tracking-widest mb-4">
-        Scan Expense Receipt
+    <div className="card-medical p-6 border-l-4 border-primary">
+      <h3 className="text-xs font-bold text-primary uppercase tracking-widest mb-4">
+        Scanner un reçu de dépense
       </h3>
-      
-      <div className="relative group cursor-pointer border-2 border-dashed border-white/10 rounded-2xl p-8 hover:border-orange-400/50 transition-all text-center">
+
+      <div className="relative group cursor-pointer border-2 border-dashed border-white/10 rounded-2xl p-8 hover:border-primary/50 transition-all text-center">
         <input 
           type="file" 
           accept="image/*" 
@@ -74,9 +83,9 @@ export default function ExpenseReceiptScanner({ onExpenseCreated }: ExpenseRecei
         
         {loading ? (
           <div className="animate-pulse">
-            <Upload className="mx-auto w-12 h-12 mb-2 text-orange-400 animate-bounce" />
-            <p className="text-xs font-bold uppercase tracking-widest text-orange-400">
-              Processing Receipt...
+            <Upload className="mx-auto w-12 h-12 mb-2 text-primary animate-bounce" />
+            <p className="text-xs font-bold uppercase tracking-widest text-primary">
+              Traitement en cours...
             </p>
           </div>
         ) : success ? (
@@ -103,7 +112,7 @@ export default function ExpenseReceiptScanner({ onExpenseCreated }: ExpenseRecei
           </div>
         ) : (
           <div>
-            <Camera className="mx-auto w-12 h-12 mb-2 text-white/20 group-hover:text-orange-400/50 transition-colors" />
+            <Camera className="mx-auto w-12 h-12 mb-2 text-white/20 group-hover:text-primary/50 transition-colors" />
             <p className="text-xs font-bold uppercase tracking-widest text-white/40">
               Scan Receipt to Create Expense
             </p>

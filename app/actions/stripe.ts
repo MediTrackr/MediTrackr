@@ -1,29 +1,38 @@
 "use server";
 import { stripe } from "@/utils/stripe";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server";
 
 export async function handleStripeOnboarding(email: string) {
   const supabase = await createClient();
 
-  // 1. Stripe will return the existing account if it finds a match
-  const account = await stripe.accounts.create({
-    type: 'express',
-    email: email,
-    capabilities: { transfers: { requested: true } },
-  });
+  // Check if user already has a Stripe account
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("stripe_account_id")
+    .eq("email", email)
+    .maybeSingle();
 
-  // 2. Update Supabase to ensure the ID is synced
-  await supabase
-    .from('profiles')
-    .update({ stripe_account_id: account.id })
-    .eq('email', email);
+  let accountId = profile?.stripe_account_id as string | undefined;
 
-  // 3. Generate the link (Stripe handles the "already finished" logic)
+  if (!accountId) {
+    const account = await stripe.accounts.create({
+      type: "express",
+      email,
+      capabilities: { transfers: { requested: true } },
+    });
+    accountId = account.id;
+
+    await supabase
+      .from("profiles")
+      .update({ stripe_account_id: accountId })
+      .eq("email", email);
+  }
+
   const accountLink = await stripe.accountLinks.create({
-    account: account.id,
-    refresh_url: `${process.env.NEXT_PUBLIC_URL}/settings`,
-    return_url: `${process.env.NEXT_PUBLIC_URL}/dashboard`,
-    type: 'account_onboarding',
+    account: accountId,
+    refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings`,
+    return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+    type: "account_onboarding",
   });
 
   return accountLink.url;

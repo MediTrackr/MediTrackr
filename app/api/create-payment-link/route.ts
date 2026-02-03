@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from '@/utils/supabase/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2025-12-15.acacia' as Stripe.LatestApiVersion,
 });
 
 export async function POST(request: Request) {
@@ -11,10 +11,11 @@ export async function POST(request: Request) {
     const { invoiceId, amount, patientName, patientEmail } = await request.json();
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const paymentLink = await stripe.paymentLinks.create({
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
       line_items: [{
         price_data: {
           currency: 'cad',
@@ -26,15 +27,15 @@ export async function POST(request: Request) {
         },
         quantity: 1,
       }],
+      mode: 'payment',
+      customer_email: patientEmail || undefined,
       metadata: { userId: user.id, invoiceId, patientName, patientEmail },
-      after_completion: {
-        type: 'redirect',
-        redirect: { url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?invoice=${invoiceId}` },
-      },
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?invoice=${invoiceId}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
     });
 
-    return NextResponse.json({ paymentUrl: paymentLink.url, paymentLinkId: paymentLink.id });
-  } catch (error) {
+    return NextResponse.json({ paymentUrl: session.url, sessionId: session.id });
+  } catch {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }

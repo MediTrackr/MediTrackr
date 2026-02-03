@@ -1,0 +1,40 @@
+Caractéristiques des logiciels pour la facturation informatisée
+Vos logiciels de facturation doivent tenir compte de votre clientèle, du mode de rémunération et du mode de transmission des demandes de paiement. Prenez connaissance de ces informations avant de vous inscrire à la facturation informatisée.
+
+Modes et systèmes de rémunération
+En fonction de votre clientèle, vous pouvez produire un ou plusieurs logiciels adaptés aux différents modes de rémunération. Voici les systèmes que nous utilisons :
+
+Règlement des factures des professionnels de la santé (RFP), pour la rémunération à l’acte des professionnels de la santé et des dispensateurs de services assurés
+Rémunération des professionnels à vacation (RPV), incluant la rémunération à tarif horaire, à honoraires forfaitaires, à vacation et à tarif journalier (per diem)
+Rémunération des professionnels à salaire (RPS), incluant les professionnels à honoraires fixes
+Rémunération mixte (RMX), pour les professionnels rémunérés à la fois à vacation et à l’acte
+Modes de transmission des demandes
+Les demandes de paiement des autres professionnels peuvent être transmises en temps réel ou en différé.
+
+En temps réel
+Vous pouvez transmettre en temps réel une seule demande de paiement ou une seule facture liée à une demande de remboursement à la fois. Ce mode de transmission permet l’envoi instantané des informations de recevabilité. Il fonctionne seulement avec le système RFP.
+
+En différé
+Le mode en différé permet de transmettre un lot de demandes de paiement et de factures liées à une demande de remboursement. Les informations de recevabilité sont envoyées avant 8 h le lendemain, si la transmission a été effectuée avant 22 h la veille. Elles sont transmises seulement lorsque toutes les demandes du lot ont été traitées. Tous les systèmes de rémunération permettent ce mode de transmission.
+
+Clientèles
+Vous pouvez développer un logiciel de facturation pour les clientèles suivantes :
+
+Médecins omnipraticiens ou omnipraticiennes
+Médecins spécialistes
+Chirurgiens-dentistes ou chirurgiennes-dentistes
+Spécialistes en chirurgie buccale et maxillo-faciale
+Optométristes
+Denturologistes
+Hygiénistes dentaires
+Votre logiciel sert à la transmission de leurs demandes de paiement et des factures liées à leurs demandes de remboursement.
+
+Processus d’inscription
+Pour vous inscrire, remplissez et transmettez-nous le formulaire Inscription à la facturation informatisée – Développeurs de logiciels de facturation. Vous recevrez par courriel un identifiant et un mot de passe temporaire, votre confirmation d’accès au site de soutien et la procédure pour y accéder.
+
+Site de soutien et essais
+L’inscription à la facturation informatisée vous donne accès au site de soutien pour les développeurs de logiciels (extranet). Vous y trouverez les documents administratifs et techniques relatifs à nos systèmes de rémunération. Prenez-en connaissance avant de développer votre logiciel de facturation.
+
+Vous trouverez également dans le site de soutien les spécifications techniques et les exigences à respecter pour effectuer des essais de bout en bout dans nos environnements de test. Ces essais ont pour but d'assurer la compatibilité de votre logiciel de facturation avec nos systèmes.
+
+Une fois votre logiciel reconnu, vous pourrez y ajouter des applications d’échange interentreprises – B2B pour faciliter les démarches de votre clientèle.
