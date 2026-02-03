@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import Sidebar from "@/components/dashboard/sidebar";
-import StatCard from "@/components/ui/stat-card";
+import Sidebar from "@/components/dashboard/Sidebar";
+import StatCard from "@/components/dashboard/StatCard";
 import { DollarSign, Wallet, Clock, ArrowDownToLine, LayoutList, FilePlus, Database, FileText, UploadCloud } from "lucide-react";
 import Link from "next/link";
 
@@ -138,3 +138,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

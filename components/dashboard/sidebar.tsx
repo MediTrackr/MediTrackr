@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { ScanText, FilePlus, Users, Eye, CreditCard, UserPlus, Printer, QrCode, ChevronDown } from "lucide-react";
+import { useState } from "react";
 
 interface NavItem {
   label: string;
@@ -50,6 +53,7 @@ const NAV_SECTIONS = [
 ] as const;
 
 export default function Sidebar() {
+ const [isManagementOpen, setIsManagementOpen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -60,6 +64,13 @@ export default function Sidebar() {
   };
 
   return (
+   <div className="lg:col-span-1 space-y-4">
+      <div className="card-medical p-4 shadow-cyan space-y-2">
+        <h3 className="text-xs font-bold text-primary/50 uppercase tracking-widest mb-4">Quick Actions</h3>
+        <Button variant="default" className="w-full justify-start gap-3 shadow-cyan bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30">
+          <ScanText className="w-4 h-4" /> Scan Receipt (OCR)
+        </Button>
+      </div>
     <aside className="lg:col-span-1 space-y-6">
       {/* Navigation Sections */}
       {NAV_SECTIONS.map((section) => (
