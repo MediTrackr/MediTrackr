@@ -29,8 +29,8 @@ export default function ConsentBanner() {
     <div className="fixed bottom-0 left-0 right-0 bg-primary/95 backdrop-blur-xl border-t border-white/10 p-6 z-50">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
         <div className="flex-1 text-black">
-          <h3 className="text-lg font-bold mb-2">Protection de vos données personnelles (Loi 25)</h3>
-          <p className="text-sm">Vos données sont hébergées au Canada et gérées conformément à la Loi 25.</p>
+          <h3 className="text-lg font-bold mb-2">Protection de vos donnï¿½es personnelles (Loi 25)</h3>
+          <p className="text-sm">Vos donnï¿½es sont hï¿½bergï¿½es au Canada et gï¿½rï¿½es conformï¿½ment ï¿½ la Loi 25.</p>
         </div>
         <div className="flex gap-3">
           <Button onClick={giveConsent} className="bg-black text-primary">J'accepte</Button>

@@ -1,6 +1,6 @@
 "use server";
 import { stripe } from "@/utils/stripe";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 export async function handleStripeOnboarding(email: string) {
   const supabase = await createClient();
