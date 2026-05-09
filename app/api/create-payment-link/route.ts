@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import Stripe from 'stripe';
 
+export const dynamic = 'force-dynamic';
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-12-15.acacia' as Stripe.LatestApiVersion,
 });
@@ -11,6 +13,10 @@ export async function POST(request: Request) {
     const { invoiceId, amount, patientName, patientEmail } = await request.json();
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
+if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error("Missing STRIPE_SECRET_KEY");
+  }
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
