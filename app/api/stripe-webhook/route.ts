@@ -4,20 +4,33 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { sendReceiptEmail } from '@/lib/email-service';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-12-15.acacia' as Stripe.LatestApiVersion });
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(request: Request) {
-  const body = await request.text();
-  const sig = request.headers.get('stripe-signature')!;
+  // 1. Initialize clients inside the request scope
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { 
+    apiVersion: '2025-12-15.acacia' as Stripe.LatestApiVersion 
+  });
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // 2. Declare variables ONLY here
+  const rawBody = await request.text();
+  const signature = request.headers.get('stripe-signature');
+
+  if (!signature) {
+    return new Response('Missing stripe-signature', { status: 400 });
+  }
+
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(
+      rawBody, 
+      signature, 
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
   } catch (err) {
     console.error(`❌ Webhook Signature Error: ${err instanceof Error ? err.message : 'Unknown'}`);
     return new Response('Webhook Error', { status: 400 });
@@ -31,22 +44,17 @@ export async function POST(request: Request) {
       const session = event.data.object as Stripe.Checkout.Session;
       const metadata = session.metadata || {};
       const amount = session.amount_total! / 100;
-      const paymentIntentId = session.payment_intent;
+      const paymentIntentId = session.payment_intent as string;
 
-      // 1. Guard against missing payment_intent (Edge-case safety)
-      if (!paymentIntentId || typeof paymentIntentId !== 'string') {
-        console.warn(`⚠️ Event ${event.id} missing or invalid payment_intent`);
-        break;
-      }
+      if (!paymentIntentId) break;
 
       try {
-        // 2. Metadata Sanity & Ownership Boundary Check
         if (!metadata.userId) {
-          console.error(`❌ Security: Event ${event.id} missing userId in metadata.`);
+          console.error(`❌ Security: Event ${event.id} missing userId.`);
           break;
         }
 
-        // 3. App-Level Idempotency Guard
+        // App-Level Idempotency Guard
         const { data: existingPayment } = await supabase
           .from('payments')
           .select('id')
@@ -54,7 +62,7 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (existingPayment) {
-          console.log(`⚠️ Event ${event.id} ignored: ID ${paymentIntentId} already in DB.`);
+          console.log(`⚠️ Event ${event.id} ignored: already in DB.`);
           break;
         }
 
@@ -62,7 +70,6 @@ export async function POST(request: Request) {
         const realReceiptUrl = (pi.latest_charge as Stripe.Charge)?.receipt_url;
         let invoiceId = metadata.invoiceId;
 
-        // 4. Auto-Invoice or Partial Logic
         if (!invoiceId || invoiceId === "null" || invoiceId === "undefined") {
           const { data: newInv } = await supabase.from('invoices').insert({
             user_id: metadata.userId,
@@ -75,24 +82,17 @@ export async function POST(request: Request) {
           }).select().single();
           invoiceId = newInv.id;
         } else {
-          // Verify invoice ownership before update
           const { data: inv } = await supabase.from('invoices')
             .select('amount_paid, total_amount, user_id')
             .eq('id', invoiceId)
             .single();
 
-          if (inv && inv.user_id !== metadata.userId) {
-             console.error(`❌ Security: Invoice ${invoiceId} does not belong to User ${metadata.userId}`);
-             break;
-          }
+          if (inv && inv.user_id !== metadata.userId) break;
 
           const newPaid = (inv?.amount_paid || 0) + amount;
           const newStatus = newPaid >= (inv?.total_amount || 0) ? 'paid' : 'partial';
           await supabase.from('invoices').update({ amount_paid: newPaid, status: newStatus }).eq('id', invoiceId);
         }
-
-        // 5. Explicit Debug Logging for Stripe Support
-        console.log('📄 Webhook Processing Details:', { eventId: event.id, type: event.type, paymentIntentId, invoiceId });
 
         const { data: payment } = await supabase.from('payments').insert({
           user_id: metadata.userId,
@@ -111,15 +111,13 @@ export async function POST(request: Request) {
           stripe_payment_intent: paymentIntentId
         });
 
-        try {
-          await sendReceiptEmail({
-            to: (metadata.patientEmail || session.customer_details?.email) ?? '',
-            patientName: metadata.patientName || 'Patient',
-            amount,
-            invoiceId,
-            transactionId: paymentIntentId,
-          });
-        } catch (e) { console.error('📧 Email soft-fail:', e); }
+        await sendReceiptEmail({
+          to: (metadata.patientEmail || session.customer_details?.email) ?? '',
+          patientName: metadata.patientName || 'Patient',
+          amount,
+          invoiceId,
+          transactionId: paymentIntentId,
+        });
 
       } catch (dbErr) {
         console.error(`❌ DB Error [${event.id}]:`, dbErr);
