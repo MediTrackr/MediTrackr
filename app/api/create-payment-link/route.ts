@@ -1,33 +1,50 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import Stripe from 'stripe';
+import { NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
+import Stripe from "stripe";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-// 1. Move the SDK client initialization INSIDE the function
 export async function POST(req: Request) {
   try {
-    // Check for the key here to prevent the 'authenticator' error
-    const apiKey = process.env.PAYMENT_PROVIDER_API_KEY; 
-    
+    const apiKey = process.env.STRIPE_SECRET_KEY || process.env.PAYMENT_PROVIDER_API_KEY;
+
     if (!apiKey) {
-      console.error("Missing API Key in environment variables");
-      return new Response(JSON.stringify({ error: "Server Configuration Error" }), { status: 500 });
+      console.error("Missing Stripe API Key in environment variables");
+      return NextResponse.json({ error: "Server Configuration Error" }, { status: 500 });
     }
 
-    // 2. Initialize the client only when the request hits
-    // Replace 'YourSDK' with whatever library you are using (Stripe, Square, etc.)
-    const client = new YourSDK({
-      apiKey: apiKey
+    // Initialize the Stripe client with the exact version required by your types
+    const stripe = new Stripe(apiKey, {
+      apiVersion: "2025-12-15.clover" as any, 
     });
 
     const body = await req.json();
-    // ... your logic to create the payment link ...
+    const { amount, currency, description } = body;
 
-    return new Response(JSON.stringify({ url: "..." }), { status: 200 });
-    
-  } catch (error) {
+    // Create a Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: currency || "cad",
+            product_data: {
+              name: description || "Service",
+            },
+            unit_amount: amount, 
+          },
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cancel`,
+    });
+
+    return NextResponse.json({ url: session.url }, { status: 200 });
+
+  } catch (error: any) {
     console.error("Payment Link Error:", error);
-    return new Response(JSON.stringify({ error: "Failed to create link" }), { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to create link" }, { status: 500 });
   }
 }
