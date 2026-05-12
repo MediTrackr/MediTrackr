@@ -8,7 +8,8 @@ import {
   ArrowLeft, Plus, Eye, FileText, CheckCircle, XCircle,
   Clock, AlertTriangle, RefreshCw, ChevronDown, ChevronUp,
 } from "lucide-react";
-import { validateRAMQClaim } from "@/utils/ramq-adjudicator";
+import { validateRAMQClaim, getValidationSummary, ActCode } from "@/utils/ramq-adjudicator";
+import { ValidationPanel, ValidationBadge } from "@/components/ValidationPanel";
 import { ProfessionalCategory } from "@/utils/ramq-categories";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -425,6 +426,24 @@ export default function RAMQCommandCenter() {
                               {claim.claim_number && (
                                 <span className="text-[9px] text-white/25 font-mono">#{claim.claim_number}</span>
                               )}
+                              {claim.status === 'draft' && (() => {
+                                const v = getValidationSummary(
+                                  (claim.act_codes as ActCode[]) || [],
+                                  [],
+                                  {
+                                    serviceDate: claim.service_date,
+                                    doctorRamq: claim.doctor_ramq,
+                                    patientRamq: claim.patient_ramq,
+                                    patientDob: claim.patient_dob,
+                                    locationCode: claim.location_code,
+                                    diagnosticCode: claim.diagnostic_code,
+                                    professionalCategory: claim.professional_category,
+                                    existingClaims: claims,
+                                    claimId: claim.id,
+                                  }
+                                );
+                                return <ValidationBadge errorCount={v.errorCount} warningCount={v.warningCount} />;
+                              })()}
                             </div>
                             <p className="text-[11px] text-white/40">
                               RAMQ {claim.patient_ramq}
@@ -474,9 +493,30 @@ export default function RAMQCommandCenter() {
                         </div>
                       )}
 
-                      {/* Expanded actions */}
+                      {/* Expanded: validation + actions */}
                       {isExpanded && (
-                        <div className="px-5 pb-5 pt-2 border-t border-white/8 flex flex-wrap gap-2 items-center">
+                        <div className="px-5 pb-5 pt-3 border-t border-white/8 space-y-3">
+                          {/* Validation panel — shown for draft and rejected claims */}
+                          {(claim.status === 'draft' || claim.status === 'rejected' || claim.status === 'review_needed') && (() => {
+                            const result = validateRAMQClaim(
+                              (claim.act_codes as ActCode[]) || [],
+                              [],
+                              {
+                                serviceDate: claim.service_date,
+                                doctorRamq: claim.doctor_ramq,
+                                patientRamq: claim.patient_ramq,
+                                patientDob: claim.patient_dob,
+                                locationCode: claim.location_code,
+                                diagnosticCode: claim.diagnostic_code,
+                                professionalCategory: claim.professional_category,
+                                existingClaims: claims,
+                                claimId: claim.id,
+                              }
+                            );
+                            return <ValidationPanel result={result} />;
+                          })()}
+
+                        <div className="flex flex-wrap gap-2 items-center">
                           <Link href={`/claims/ramq/${claim.id}`}>
                             <Button size="sm" variant="ghost" className="text-primary hover:bg-primary/10 text-xs">
                               <Eye className="w-3.5 h-3.5 mr-1.5" /> Fiche complète
@@ -545,6 +585,7 @@ export default function RAMQCommandCenter() {
                               <AlertTriangle className="w-3.5 h-3.5 mr-1.5" /> Flaguer révision
                             </Button>
                           )}
+                          </div>
                         </div>
                       )}
                     </div>
