@@ -322,6 +322,11 @@ export default function RAMQCommandCenter() {
                 <BarChart3 className="w-4 h-4" /> Réconciliation
               </Button>
             </Link>
+            <Link href="/claims/remittance">
+              <Button variant="ghost" className="gap-2 text-white/50 border border-white/10 bg-black/40 rounded-xl px-4 h-10 hover:text-white/80 hover:border-white/20">
+                <FileText className="w-4 h-4" /> Avis de paiement
+              </Button>
+            </Link>
             <Link href="/dashboard/invoice/new">
               <Button className="gap-2 bg-primary text-black rounded-xl px-4 h-10 font-bold hover:bg-primary/90">
                 <Plus className="w-4 h-4" /> Nouvelle réclamation
