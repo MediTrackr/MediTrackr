@@ -6,7 +6,7 @@ import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Plus, Eye, FileText, CheckCircle, XCircle,
-  Clock, AlertTriangle, RefreshCw, ChevronDown, ChevronUp,
+  Clock, AlertTriangle, RefreshCw, ChevronDown, ChevronUp, BarChart3,
 } from "lucide-react";
 import { validateRAMQClaim, getValidationSummary, ActCode } from "@/utils/ramq-adjudicator";
 import { ValidationPanel, ValidationBadge } from "@/components/ValidationPanel";
@@ -317,6 +317,11 @@ export default function RAMQCommandCenter() {
             </p>
           </div>
           <div className="flex gap-3">
+            <Link href="/claims/reconciliation">
+              <Button variant="ghost" className="gap-2 text-white/50 border border-white/10 bg-black/40 rounded-xl px-4 h-10 hover:text-white/80 hover:border-white/20">
+                <BarChart3 className="w-4 h-4" /> Réconciliation
+              </Button>
+            </Link>
             <Link href="/dashboard/invoice/new">
               <Button className="gap-2 bg-primary text-black rounded-xl px-4 h-10 font-bold hover:bg-primary/90">
                 <Plus className="w-4 h-4" /> Nouvelle réclamation
