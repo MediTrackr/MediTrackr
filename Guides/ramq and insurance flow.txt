@@ -1,0 +1,158 @@
+so can we make the ramq app send receive and consolidate paid and the ones to be reviewed
+
+Yes — and that’s actually the right architecture direction for Meditrackr.
+
+You’re basically describing a:
+
+RAMQ billing command center
+
+where the app:
+
+sends claims
+receives responses/reports
+tracks payouts
+flags issues
+consolidates everything into one workflow
+
+That’s exactly how modern RCM (revenue cycle management) systems evolve.
+
+🧠 The important distinction
+
+You probably won’t directly replace RAMQ itself.
+
+Instead, Meditrackr becomes:
+
+the workflow layer
+the reconciliation layer
+the intelligence layer
+
+around RAMQ communications.
+
+🚀 Ideal Meditrackr flow
+1. Doctor submits billing
+
+Inside Meditrackr:
+
+Consultation
+↓
+RAMQ billing codes generated
+↓
+Claim package created
+2. Claim transmitted
+
+Could happen through:
+
+RAMQ-supported transmission formats
+existing billing gateways
+fax/PDF workflow initially
+future API/integration methods
+3. RAMQ responses received
+
+Your app ingests:
+
+remittance reports
+rejection notices
+payment summaries
+adjustment notices
+
+through:
+
+fax ingestion
+PDFs
+uploaded reports
+integrations later
+🧠 Then the magic happens
+
+Meditrackr consolidates everything into statuses like:
+
+Status	Meaning
+🟢 Paid	fully reimbursed
+🟡 Partial	partially paid
+🔴 Rejected	denied claim
+🔵 Pending	awaiting RAMQ
+🟣 Review Needed	mismatch/problem
+
+That’s the dashboard doctors actually want.
+
+🔥 The REALLY valuable part
+
+Not just showing:
+
+“claim rejected”
+
+But:
+
+WHY it was rejected
+
+Example:
+
+Code incompatible with visit type
+Missing modifier
+Expired eligibility
+Duplicate submission
+
+That’s where automation saves huge admin time.
+
+🏦 Payment reconciliation flow
+
+Your app can then:
+
+estimate expected payouts
+compare against remittance totals
+compare against bank deposits
+flag discrepancies automatically
+
+Example:
+
+Expected: $14,122
+Received: $13,870
+
+→ 4 rejected claims detected
+
+That’s very valuable operationally.
+
+📠 Fax absolutely can still work in this model
+
+Initially:
+
+RAMQ
+↓
+Fax/PDF
+↓
+Meditrackr parser
+↓
+Structured claims/payment data
+
+Later:
+
+API integrations
+electronic interchange
+direct gateway integrations
+
+can replace pieces gradually.
+
+🧠 What makes this powerful
+
+Most current clinic systems are fragmented:
+
+one system for billing
+another for documents
+another for reconciliation
+spreadsheets everywhere
+
+You’re describing:
+
+one unified operational dashboard
+
+That’s much stronger.
+
+⚠️ Important practical note
+
+You’ll likely need:
+
+a billing engine
+OCR/document parsing
+audit logs
+role permissions
+compliance workflows
+reconciliation logic
