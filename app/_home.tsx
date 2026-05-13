@@ -16,7 +16,7 @@ const CONTENT = {
     badge: "🇨🇦 Pour les professionnels de santé au Canada",
     tagline: "Simplifiez la gestion de votre pratique.",
     sub: "Revenus, dépenses, facturation et conformité — tout ce dont votre pratique médicale a besoin, dans un seul outil pensé pour le Canada.",
-    cta1: "Commencer gratuitement",
+    cta1: "Commencer",
     cta2: "Se connecter",
     stats: [
       { value: "🇨🇦", label: "Professionnels au Canada", isEmoji: true },
@@ -47,7 +47,7 @@ const CONTENT = {
     badge: "🇨🇦 For Canadian Healthcare Professionals",
     tagline: "Simplify the management of your practice.",
     sub: "Revenue, expenses, billing and compliance — everything your medical practice needs, in one tool built for Canada.",
-    cta1: "Get started for free",
+    cta1: "Get Started",
     cta2: "Sign in",
     stats: [
       { value: "🇨🇦", label: "Professionals across Canada", isEmoji: true },
@@ -152,7 +152,7 @@ export default function HomeClient({ initialLang }: { initialLang: Lang }) {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto mt-1">
-            <Link href="/signup" className="w-full sm:w-auto">
+            <Link href="/pricing" className="w-full sm:w-auto">
               <Button
                 size="lg"
                 className="w-full px-8 py-5 text-sm font-bold bg-primary text-black hover:bg-primary/80 shadow-[0_0_24px_rgba(0,217,255,0.25)]"
