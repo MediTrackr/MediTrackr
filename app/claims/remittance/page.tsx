@@ -3,10 +3,112 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
+import { useLang } from "@/lib/i18n";
 import {
   ArrowLeft, Upload, FileText, CheckCircle, XCircle, AlertTriangle,
   RefreshCw, ChevronDown, ChevronUp, Zap, Clock,
 } from "lucide-react";
+
+const T = {
+  fr: {
+    title: "Ingestion d'avis de paiement",
+    subtitle: "Import PDF / image · analyse IA · réconciliation auto",
+    uploading: "Analyse en cours…",
+    uploadHint: "Claude lit le bordereau RAMQ",
+    dropZone: "Glisser-déposer ou cliquer pour importer",
+    dropFormats: "PNG · JPG · WebP · max 10 MB",
+    dropPrivacy: "L'image n'est jamais stockée — seules les données extraites sont conservées (conformité Loi 25).",
+    errorTitle: "Erreur d'analyse",
+    errorClose: "Fermer",
+    successTitle: "Avis appliqué avec succès",
+    successBody: "Les réclamations correspondantes ont été mises à jour. Le grand livre de réconciliation a été synchronisé automatiquement.",
+    seeReconciliation: "Voir réconciliation →",
+    newImport: "Nouvel import",
+    resultTitle: "Avis de paiement analysé",
+    unknownDate: "Date inconnue",
+    confidence: "Confiance",
+    unknownBatch: "Lot",
+    labels: { approved: "Approuvé total", withheld: "Retenu / ajusté", net: "Paiement net", claims: "Réclamations", linked: "liées" },
+    extractedLines: (n: number) => `Lignes extraites (${n})`,
+    importOther: "← Importer un autre document",
+    applyBtn: (n: number) => `Appliquer ${n} réclamation${n !== 1 ? "s" : ""}`,
+    applying: "Application…",
+    noneMatched: "Aucune réclamation correspondante trouvée. Vérifiez que les réclamations existent dans le centre de commande RAMQ.",
+    history: "Imports précédents",
+    historyLoading: "Chargement…",
+    historyEmpty: "Aucun import pour l'instant",
+    lineNotLinked: "non liée",
+    colClaimed: "Réclamé",
+    colApproved: "Approuvé",
+    colWithheld: "Retenu",
+    detailClaim: "Nº réclamation",
+    detailRAMQ: "RAMQ patient",
+    detailDate: "Date service",
+    detailStatus: "Statut liaison",
+    linkedStatus: "Liée à une réclamation",
+    notLinkedStatus: "Non trouvée dans le système",
+    reductionLabel: "Motif de réduction",
+    histStatus: { applied: "Appliqué", partial: "Partiel", rejected: "Rejeté", pending: "En attente" },
+    histUnnamed: "Import sans nom",
+    histLinked: (n: number) => `${n} liée${n !== 1 ? "s" : ""}`,
+    histUnmatched: (n: number) => `${n} non trouvée${n !== 1 ? "s" : ""}`,
+    formatError: "Format non supporté. Convertissez le PDF en image (PNG ou JPG) avant de l'importer.",
+    sizeError: "Fichier trop grand (max 10 MB). Réduisez la résolution avant d'importer.",
+    lowConfidence: "Document non reconnu comme un avis de paiement RAMQ (confiance trop faible). Vérifiez l'image et réessayez.",
+    processingError: "Erreur lors de l'analyse du document.",
+    applyError: "Erreur lors de l'application.",
+    back: "RAMQ",
+  },
+  en: {
+    title: "Remittance notice import",
+    subtitle: "PDF / image upload · AI analysis · auto reconciliation",
+    uploading: "Analysing…",
+    uploadHint: "Claude is reading the RAMQ remittance",
+    dropZone: "Drag & drop or click to upload",
+    dropFormats: "PNG · JPG · WebP · max 10 MB",
+    dropPrivacy: "The image is never stored — only extracted data is kept (Loi 25 / privacy compliance).",
+    errorTitle: "Analysis error",
+    errorClose: "Close",
+    successTitle: "Remittance applied successfully",
+    successBody: "Matching claims have been updated. The reconciliation ledger has been synced automatically.",
+    seeReconciliation: "View reconciliation →",
+    newImport: "New import",
+    resultTitle: "Remittance notice analysed",
+    unknownDate: "Unknown date",
+    confidence: "Confidence",
+    unknownBatch: "Batch",
+    labels: { approved: "Total approved", withheld: "Withheld / adjusted", net: "Net payment", claims: "Claims", linked: "linked" },
+    extractedLines: (n: number) => `Extracted lines (${n})`,
+    importOther: "← Import another document",
+    applyBtn: (n: number) => `Apply ${n} claim${n !== 1 ? "s" : ""}`,
+    applying: "Applying…",
+    noneMatched: "No matching claims found. Make sure claims exist in the RAMQ command center.",
+    history: "Previous imports",
+    historyLoading: "Loading…",
+    historyEmpty: "No imports yet",
+    lineNotLinked: "unlinked",
+    colClaimed: "Claimed",
+    colApproved: "Approved",
+    colWithheld: "Withheld",
+    detailClaim: "Claim #",
+    detailRAMQ: "Patient RAMQ",
+    detailDate: "Service date",
+    detailStatus: "Link status",
+    linkedStatus: "Linked to a claim",
+    notLinkedStatus: "Not found in system",
+    reductionLabel: "Reduction reason",
+    histStatus: { applied: "Applied", partial: "Partial", rejected: "Rejected", pending: "Pending" },
+    histUnnamed: "Unnamed import",
+    histLinked: (n: number) => `${n} linked`,
+    histUnmatched: (n: number) => `${n} unmatched`,
+    formatError: "Unsupported format. Convert the PDF to an image (PNG or JPG) before importing.",
+    sizeError: "File too large (max 10 MB). Reduce resolution before importing.",
+    lowConfidence: "Document not recognized as a RAMQ remittance (confidence too low). Check the image and try again.",
+    processingError: "Error analysing the document.",
+    applyError: "Error applying remittance.",
+    back: "RAMQ",
+  },
+} as const;
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -73,6 +175,8 @@ function toBase64(file: File): Promise<string> {
 export default function RemittancePage() {
   const router = useRouter();
   const supabase = createClient();
+  const [lang] = useLang();
+  const t = T[lang];
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [dragging, setDragging]         = useState(false);
@@ -109,11 +213,11 @@ export default function RemittancePage() {
     // Only image files — PDF needs server-side conversion; guide client to use image
     const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
     if (!allowed.includes(file.type)) {
-      setError("Format non supporté. Convertissez le PDF en image (PNG ou JPG) avant de l'importer.");
+      setError(t.formatError);
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setError("Fichier trop grand (max 10 MB). Réduisez la résolution avant d'importer.");
+      setError(t.sizeError);
       return;
     }
 
@@ -126,14 +230,14 @@ export default function RemittancePage() {
         body: JSON.stringify({ image: base64, fileName: file.name }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erreur de traitement");
+      if (!res.ok) throw new Error(data.error ?? t.processingError);
       if (data.confidence < 30) {
-        setError("Document non reconnu comme un avis de paiement RAMQ (confiance trop faible). Vérifiez l'image et réessayez.");
+        setError(t.lowConfidence);
         return;
       }
       setParseResult(data);
     } catch (e: unknown) {
-      setError((e as Error).message ?? "Erreur lors de l'analyse du document.");
+      setError((e as Error).message ?? t.processingError);
     } finally {
       setScanning(false);
     }
@@ -185,7 +289,7 @@ export default function RemittancePage() {
       setApplyDone(true);
       await fetchHistory();
     } catch (e: unknown) {
-      setError((e as Error).message ?? "Erreur lors de l'application.");
+      setError((e as Error).message ?? t.applyError);
     } finally {
       setApplying(false);
     }
@@ -207,8 +311,8 @@ export default function RemittancePage() {
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <h1 className="text-lg font-bold text-white/90 tracking-tight">Ingestion d'avis de paiement</h1>
-              <p className="text-[11px] text-white/30 mt-0.5">Import PDF / image · analyse IA · réconciliation auto</p>
+              <h1 className="text-lg font-bold text-white/90 tracking-tight">{t.title}</h1>
+              <p className="text-[11px] text-white/30 mt-0.5">{t.subtitle}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -245,8 +349,8 @@ export default function RemittancePage() {
               {scanning ? (
                 <>
                   <RefreshCw className="w-10 h-10 text-primary animate-spin" />
-                  <p className="text-white/60 text-sm font-semibold">Analyse en cours…</p>
-                  <p className="text-white/25 text-[11px]">Claude lit le bordereau RAMQ</p>
+                  <p className="text-white/60 text-sm font-semibold">{t.uploading}</p>
+                  <p className="text-white/25 text-[11px]">{t.uploadHint}</p>
                 </>
               ) : (
                 <>
@@ -254,12 +358,10 @@ export default function RemittancePage() {
                     <Upload className="w-7 h-7 text-white/30" />
                   </div>
                   <div>
-                    <p className="text-white/70 font-semibold text-base">Glisser-déposer ou cliquer pour importer</p>
-                    <p className="text-white/30 text-xs mt-1">PNG · JPG · WebP · max 10 MB</p>
+                    <p className="text-white/70 font-semibold text-base">{t.dropZone}</p>
+                    <p className="text-white/30 text-xs mt-1">{t.dropFormats}</p>
                   </div>
-                  <p className="text-white/20 text-[10px] max-w-sm">
-                    L'image n'est jamais stockée — seules les données extraites sont conservées (conformité Loi 25).
-                  </p>
+                  <p className="text-white/20 text-[10px] max-w-sm">{t.dropPrivacy}</p>
                 </>
               )}
             </div>
@@ -270,7 +372,7 @@ export default function RemittancePage() {
             <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-red-500/20 bg-red-500/5">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm text-red-400 font-medium">Erreur d'analyse</p>
+                <p className="text-sm text-red-400 font-medium">{t.errorTitle}</p>
                 <p className="text-xs text-red-400/70 mt-0.5">{error}</p>
               </div>
               <button onClick={() => setError(null)} className="ml-auto text-red-400/40 hover:text-red-400 transition-colors">
@@ -284,20 +386,18 @@ export default function RemittancePage() {
             <div className="flex items-center gap-3 px-5 py-4 rounded-2xl border border-green-500/30 bg-green-500/8">
               <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-green-400">Avis appliqué avec succès</p>
-                <p className="text-[11px] text-green-400/60 mt-0.5">
-                  Les réclamations correspondantes ont été mises à jour. Le grand livre de réconciliation a été synchronisé automatiquement.
-                </p>
+                <p className="text-sm font-semibold text-green-400">{t.successTitle}</p>
+                <p className="text-[11px] text-green-400/60 mt-0.5">{t.successBody}</p>
               </div>
               <div className="flex gap-2">
                 <Link href="/claims/reconciliation"
                   className="text-[10px] px-3 py-1.5 rounded-xl border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-all">
-                  Voir réconciliation →
+                  {t.seeReconciliation}
                 </Link>
                 <button
                   onClick={() => { setParseResult(null); setApplyDone(false); setError(null); }}
                   className="text-[10px] px-3 py-1.5 rounded-xl border border-white/10 text-white/40 hover:text-white/60 transition-all">
-                  Nouvel import
+                  {t.newImport}
                 </button>
               </div>
             </div>
@@ -312,11 +412,11 @@ export default function RemittancePage() {
                   <div className="flex items-center gap-3">
                     <FileText className="w-4 h-4 text-primary" />
                     <div>
-                      <p className="text-sm font-bold text-white/90">Avis de paiement analysé</p>
+                      <p className="text-sm font-bold text-white/90">{t.resultTitle}</p>
                       <p className="text-[10px] text-white/30 mt-0.5">
-                        {parseResult.paymentDate ? fmtDate(parseResult.paymentDate) : "Date inconnue"}
-                        {parseResult.batchNumber ? ` · Lot #${parseResult.batchNumber}` : ""}
-                        {` · Confiance ${parseResult.confidence}%`}
+                        {parseResult.paymentDate ? fmtDate(parseResult.paymentDate) : t.unknownDate}
+                        {parseResult.batchNumber ? ` · ${t.unknownBatch} #${parseResult.batchNumber}` : ""}
+                        {` · ${t.confidence} ${parseResult.confidence}%`}
                       </p>
                     </div>
                   </div>
@@ -324,12 +424,12 @@ export default function RemittancePage() {
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/6">
-                  <AmountCell label="Approuvé total" value={fmt(parseResult.totalApproved)} color="text-green-400" />
-                  <AmountCell label="Retenu / ajusté" value={fmt(parseResult.totalWithheld)} color="text-red-400" />
-                  <AmountCell label="Paiement net" value={fmt(parseResult.netPayment)} color="text-primary" />
+                  <AmountCell label={t.labels.approved} value={fmt(parseResult.totalApproved)} color="text-green-400" />
+                  <AmountCell label={t.labels.withheld} value={fmt(parseResult.totalWithheld)} color="text-red-400" />
+                  <AmountCell label={t.labels.net} value={fmt(parseResult.netPayment)} color="text-primary" />
                   <AmountCell
-                    label="Réclamations"
-                    value={`${parseResult.matchedCount} / ${parseResult.claimsFound} liées`}
+                    label={t.labels.claims}
+                    value={`${parseResult.matchedCount} / ${parseResult.claimsFound} ${t.labels.linked}`}
                     color={parseResult.matchedCount === parseResult.claimsFound ? "text-green-400" : "text-yellow-400"}
                   />
                 </div>
@@ -338,7 +438,7 @@ export default function RemittancePage() {
               {/* Claim lines */}
               <div className="space-y-2">
                 <p className="text-[10px] text-white/30 uppercase tracking-wider font-semibold px-1">
-                  Lignes extraites ({parseResult.lines.length})
+                  {t.extractedLines(parseResult.lines.length)}
                 </p>
                 {parseResult.lines.map((line) => (
                   <LineRow
@@ -346,6 +446,7 @@ export default function RemittancePage() {
                     line={line}
                     expanded={expandedLine === line.lineIndex}
                     onToggle={() => setExpandedLine(expandedLine === line.lineIndex ? null : line.lineIndex)}
+                    t={t}
                   />
                 ))}
               </div>
@@ -355,7 +456,7 @@ export default function RemittancePage() {
                 <button
                   onClick={() => { setParseResult(null); setError(null); }}
                   className="text-xs text-white/30 hover:text-white/60 transition-colors">
-                  ← Importer un autre document
+                  {t.importOther}
                 </button>
                 <button
                   onClick={applyResults}
@@ -365,16 +466,14 @@ export default function RemittancePage() {
                              disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {applying
-                    ? <><RefreshCw className="w-4 h-4 animate-spin" /> Application…</>
-                    : <><CheckCircle className="w-4 h-4" /> Appliquer {parseResult.matchedCount} réclamation{parseResult.matchedCount !== 1 ? "s" : ""}</>
+                    ? <><RefreshCw className="w-4 h-4 animate-spin" /> {t.applying}</>
+                    : <><CheckCircle className="w-4 h-4" /> {t.applyBtn(parseResult.matchedCount)}</>
                   }
                 </button>
               </div>
 
               {parseResult.matchedCount === 0 && (
-                <p className="text-[10px] text-yellow-400/60 text-center">
-                  Aucune réclamation correspondante trouvée. Vérifiez que les réclamations existent dans le centre de commande RAMQ.
-                </p>
+                <p className="text-[10px] text-yellow-400/60 text-center">{t.noneMatched}</p>
               )}
             </div>
           )}
@@ -383,7 +482,7 @@ export default function RemittancePage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">
-                Imports précédents
+                {t.history}
               </p>
               <button onClick={fetchHistory} className="text-white/20 hover:text-white/50 transition-colors">
                 <RefreshCw className={`w-3.5 h-3.5 ${historyLoading ? "animate-spin" : ""}`} />
@@ -391,13 +490,13 @@ export default function RemittancePage() {
             </div>
 
             {historyLoading ? (
-              <p className="text-white/20 text-xs py-4 text-center">Chargement…</p>
+              <p className="text-white/20 text-xs py-4 text-center">{t.historyLoading}</p>
             ) : history.length === 0 ? (
-              <p className="text-white/15 text-xs py-6 text-center">Aucun import pour l'instant</p>
+              <p className="text-white/15 text-xs py-6 text-center">{t.historyEmpty}</p>
             ) : (
               <div className="space-y-2">
                 {history.map(imp => (
-                  <HistoryRow key={imp.id} imp={imp} />
+                  <HistoryRow key={imp.id} imp={imp} t={t} />
                 ))}
               </div>
             )}
@@ -431,11 +530,12 @@ function AmountCell({ label, value, color }: { label: string; value: string; col
 }
 
 function LineRow({
-  line, expanded, onToggle,
+  line, expanded, onToggle, t,
 }: {
   line: ParsedLine;
   expanded: boolean;
   onToggle: () => void;
+  t: (typeof T)['fr'] | (typeof T)['en'];
 }) {
   const hasWithheld = (line.amount_withheld ?? 0) > 0;
   return (
@@ -461,21 +561,21 @@ function LineRow({
             <p className="text-[10px] text-white/30 mt-0.5">
               {line.service_date ?? "—"}
               {line.act_code ? ` · Code ${line.act_code}` : ""}
-              {!line.matched && <span className="ml-1.5 text-white/20">non liée</span>}
+              {!line.matched && <span className="ml-1.5 text-white/20">{t.lineNotLinked}</span>}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-white/25 uppercase tracking-wider mb-0.5">Réclamé</p>
+            <p className="text-[9px] text-white/25 uppercase tracking-wider mb-0.5">{t.colClaimed}</p>
             <p className="text-xs font-mono text-white/50">{line.amount_claimed != null ? `$${line.amount_claimed.toFixed(2)}` : "—"}</p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-white/25 uppercase tracking-wider mb-0.5">Approuvé</p>
+            <p className="text-[9px] text-white/25 uppercase tracking-wider mb-0.5">{t.colApproved}</p>
             <p className={`text-xs font-mono font-semibold ${line.matched ? "text-green-400" : "text-white/50"}`}>
               {line.amount_approved != null ? `$${line.amount_approved.toFixed(2)}` : "—"}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-white/25 uppercase tracking-wider mb-0.5">Retenu</p>
+            <p className="text-[9px] text-white/25 uppercase tracking-wider mb-0.5">{t.colWithheld}</p>
             <p className={`text-xs font-mono ${hasWithheld ? "text-red-400" : "text-white/20"}`}>
               {hasWithheld ? `$${(line.amount_withheld ?? 0).toFixed(2)}` : "—"}
             </p>
@@ -488,17 +588,17 @@ function LineRow({
       {expanded && (
         <div className="px-5 pb-3.5 pt-1 border-t border-white/6 space-y-2">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
-            <DetailField label="Nº réclamation" value={line.claim_number ?? "—"} />
-            <DetailField label="RAMQ patient"   value={line.patient_ramq ?? "—"} />
-            <DetailField label="Date service"   value={line.service_date ?? "—"} />
-            <DetailField label="Statut liaison"
-              value={line.matched ? "Liée à une réclamation" : "Non trouvée dans le système"}
+            <DetailField label={t.detailClaim}  value={line.claim_number ?? "—"} />
+            <DetailField label={t.detailRAMQ}   value={line.patient_ramq ?? "—"} />
+            <DetailField label={t.detailDate}   value={line.service_date ?? "—"} />
+            <DetailField label={t.detailStatus}
+              value={line.matched ? t.linkedStatus : t.notLinkedStatus}
               valueClass={line.matched ? "text-green-400" : "text-yellow-400"}
             />
           </div>
           {(line.reduction_code || line.reduction_reason) && (
             <div className="px-3 py-2 rounded-xl bg-red-500/5 border border-red-500/10">
-              <p className="text-[9px] text-red-400/50 uppercase tracking-wider mb-1">Motif de réduction</p>
+              <p className="text-[9px] text-red-400/50 uppercase tracking-wider mb-1">{t.reductionLabel}</p>
               <p className="text-xs text-red-400/80">
                 {line.reduction_code ? `[${line.reduction_code}] ` : ""}
                 {line.reduction_reason ?? "—"}
@@ -520,7 +620,7 @@ function DetailField({ label, value, valueClass = "text-white/60" }: { label: st
   );
 }
 
-function HistoryRow({ imp }: { imp: HistoryImport }) {
+function HistoryRow({ imp, t }: { imp: HistoryImport; t: (typeof T)['fr'] | (typeof T)['en'] }) {
   const statusColor = imp.status === "applied"
     ? "text-green-400 bg-green-500/10 border-green-500/20"
     : imp.status === "partial"
@@ -532,25 +632,25 @@ function HistoryRow({ imp }: { imp: HistoryImport }) {
       <Clock className="w-3.5 h-3.5 text-white/20 flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-white/60 font-medium truncate">
-          {imp.file_name ?? "Import sans nom"}
+          {imp.file_name ?? t.histUnnamed}
         </p>
         <p className="text-[10px] text-white/25 mt-0.5">
-          {imp.payment_date ? fmtDate(imp.payment_date) : "Date inconnue"}
-          {imp.batch_number ? ` · Lot ${imp.batch_number}` : ""}
+          {imp.payment_date ? fmtDate(imp.payment_date) : t.unknownDate}
+          {imp.batch_number ? ` · ${t.unknownBatch} ${imp.batch_number}` : ""}
         </p>
       </div>
       <div className="text-right flex-shrink-0">
         <p className="text-sm font-mono text-white/50">{imp.net_payment != null ? `$${imp.net_payment.toFixed(2)}` : "—"}</p>
         <p className="text-[10px] text-white/25 mt-0.5">
-          {imp.applied_count} liée{imp.applied_count !== 1 ? "s" : ""}
-          {imp.unmatched_count > 0 ? ` · ${imp.unmatched_count} non trouvée${imp.unmatched_count !== 1 ? "s" : ""}` : ""}
+          {t.histLinked(imp.applied_count)}
+          {imp.unmatched_count > 0 ? ` · ${t.histUnmatched(imp.unmatched_count)}` : ""}
         </p>
       </div>
       <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border ${statusColor}`}>
-        {imp.status === "applied" ? "Appliqué"
-          : imp.status === "partial" ? "Partiel"
-          : imp.status === "rejected" ? "Rejeté"
-          : "En attente"}
+        {imp.status === "applied" ? t.histStatus.applied
+          : imp.status === "partial" ? t.histStatus.partial
+          : imp.status === "rejected" ? t.histStatus.rejected
+          : t.histStatus.pending}
       </span>
     </div>
   );
