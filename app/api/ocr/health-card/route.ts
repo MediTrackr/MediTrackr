@@ -3,8 +3,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/utils/supabase/server';
 import { logAuditTrail } from '@/lib/compliance/audit-middleware';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 const PROMPT = `You are analyzing a Quebec RAMQ health card (carte d'assurance maladie du Québec).
 Extract the following fields and return ONLY a valid JSON object — no markdown, no explanation.
 
@@ -20,6 +18,10 @@ If this is not a Quebec health card, return all fields as null.`;
 
 export async function POST(request: Request) {
   try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json({ error: 'OCR service not configured (missing API key)' }, { status: 503 });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -35,6 +37,7 @@ export async function POST(request: Request) {
       'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
     const base64 = image.replace(/^data:image\/\w+;base64,/, '');
 
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 256,

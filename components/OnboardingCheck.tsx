@@ -19,6 +19,7 @@ export default function OnboardingCheck({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (isPublic(pathname)) {
+      setReady(true);
       return;
     }
 

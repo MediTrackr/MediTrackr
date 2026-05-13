@@ -3,7 +3,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/utils/supabase/server';
 import { logAuditTrail } from '@/lib/compliance/audit-middleware';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 const PROMPT = `Analyze this document image and return ONLY a valid JSON object — no markdown, no code blocks, no explanation.
 
@@ -49,6 +50,10 @@ Extract every readable field. For amounts, return a number only (no $ sign).`;
 
 export async function POST(request: Request) {
   try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json({ error: 'OCR service not configured (missing API key)' }, { status: 503 });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -63,8 +68,9 @@ export async function POST(request: Request) {
       'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
     const base64 = image.replace(/^data:image\/\w+;base64,/, '');
 
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       messages: [
         {
@@ -93,8 +99,9 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json(result);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Smart scan error:', error);
-    return NextResponse.json({ error: 'Scan processing failed' }, { status: 500 });
+    const msg = error?.message ?? error?.error?.message ?? String(error) ?? 'Scan processing failed';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

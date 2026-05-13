@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -8,16 +8,54 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 
+const T = {
+  fr: {
+    subtitle: "Connexion à votre espace",
+    continueGoogle: "Continuer avec Google",
+    or: "ou",
+    email: "Courriel",
+    emailPh: "vous@exemple.com",
+    password: "Mot de passe",
+    forgotPw: "Mot de passe oublié?",
+    signIn: "Se connecter",
+    signingIn: "Connexion...",
+    noAccount: "Pas encore de compte?",
+    createAccount: "Créer un compte",
+    footer: "MediTrackr · Gestion médicale canadienne",
+  },
+  en: {
+    subtitle: "Sign in to your account",
+    continueGoogle: "Continue with Google",
+    or: "or",
+    email: "Email",
+    emailPh: "you@example.com",
+    password: "Password",
+    forgotPw: "Forgot password?",
+    signIn: "Sign in",
+    signingIn: "Signing in...",
+    noAccount: "No account yet?",
+    createAccount: "Create an account",
+    footer: "MediTrackr · Canadian medical management",
+  },
+} as const;
+
 export default function Login() {
   const router = useRouter();
   const supabase = createClient();
 
+  const [lang, setLang] = useState<"fr" | "en">("fr");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const stored = document.cookie.split("; ").find(r => r.startsWith("lang="))?.split("=")[1];
+    if (stored === "en") setLang("en");
+  }, []);
+
+  const t = T[lang];
   const inputCls = "w-full bg-black/40 border border-white/10 px-4 py-3 rounded-xl text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors";
 
   async function handleEmailLogin(e: React.FormEvent) {
@@ -47,27 +85,23 @@ export default function Login() {
   return (
     <main className="min-h-screen bg-black flex items-center justify-center p-4">
 
-      {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 w-full max-w-sm">
 
-        {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <div className="relative mb-4">
             <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
             <Image src="/images/meditrackr logo.png" alt="MediTrackr" width={64} height={64} className="relative drop-shadow-[0_0_12px_rgba(255,165,0,0.4)]" />
           </div>
           <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">MediTrackr</h1>
-          <p className="text-xs text-white/30 mt-1">Connexion à votre espace</p>
+          <p className="text-xs text-white/30 mt-1">{t.subtitle}</p>
         </div>
 
-        {/* Card */}
         <div className="bg-[#050505] rounded-[2rem] border border-white/8 shadow-[0_0_60px_rgba(0,0,0,0.8)] p-6 sm:p-8 flex flex-col gap-5">
 
-          {/* Google */}
           <button
             type="button"
             onClick={handleGoogleLogin}
@@ -80,20 +114,18 @@ export default function Login() {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Continuer avec Google
+            {t.continueGoogle}
           </button>
 
-          {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-white/8" />
-            <span className="text-[10px] uppercase font-bold text-white/20 tracking-widest">ou</span>
+            <span className="text-[10px] uppercase font-bold text-white/20 tracking-widest">{t.or}</span>
             <div className="flex-1 h-px bg-white/8" />
           </div>
 
-          {/* Email form */}
           <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] uppercase font-bold text-white/35 tracking-wide">Courriel</label>
+              <label className="text-[10px] uppercase font-bold text-white/35 tracking-wide">{t.email}</label>
               <input
                 type="email"
                 autoComplete="email"
@@ -101,15 +133,15 @@ export default function Login() {
                 onChange={e => setEmail(e.target.value)}
                 required
                 className={inputCls}
-                placeholder="vous@exemple.com"
+                placeholder={t.emailPh}
               />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <label className="text-[10px] uppercase font-bold text-white/35 tracking-wide">Mot de passe</label>
+                <label className="text-[10px] uppercase font-bold text-white/35 tracking-wide">{t.password}</label>
                 <Link href="/forgot-password" className="text-[10px] text-primary/60 hover:text-primary transition-colors">
-                  Mot de passe oublié?
+                  {t.forgotPw}
                 </Link>
               </div>
               <div className="relative">
@@ -146,26 +178,26 @@ export default function Login() {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  Connexion...
+                  {t.signingIn}
                 </span>
               ) : (
                 <>
-                  <LogIn className="w-4 h-4" /> Se connecter
+                  <LogIn className="w-4 h-4" /> {t.signIn}
                 </>
               )}
             </Button>
           </form>
 
           <p className="text-center text-xs text-white/30">
-            Pas encore de compte?{" "}
+            {t.noAccount}{" "}
             <Link href="/signup" className="text-primary hover:text-primary/80 font-bold transition-colors">
-              Créer un compte
+              {t.createAccount}
             </Link>
           </p>
         </div>
 
         <p className="text-center text-[10px] text-white/15 mt-6">
-          MediTrackr · Gestion médicale canadienne
+          {t.footer}
         </p>
       </div>
     </main>

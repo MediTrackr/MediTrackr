@@ -43,3 +43,6 @@ next-env.d.ts
 # stripe cli binary
 stripe.exe
 stripe
+
+.vercel
+.env*.local

@@ -92,6 +92,25 @@ export default function SmartScanner({ onCardData, onExpenseData, standalone = f
   const [error, setError]             = useState<string | null>(null);
   const [billingTarget, setBillingTarget] = useState<BillingTarget>("client");
 
+  async function compressImage(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const MAX = 800;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.80));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -101,26 +120,22 @@ export default function SmartScanner({ onCardData, onExpenseData, standalone = f
     setResult(null);
     setError(null);
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      try {
-        const res = await fetch("/api/ocr/smart-scan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: reader.result }),
-        });
-        const data: ScanResult = await res.json();
-        if (!res.ok) throw new Error((data as { error?: string }).error ?? "Scan failed");
-        setResult(data);
-        // Default billing target for insurance cards
-        if (data.documentType === "INSURANCE_CARD") setBillingTarget("client");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Scan échoué");
-      } finally {
-        setScanning(false);
-      }
-    };
+    try {
+      const image = await compressImage(file);
+      const res = await fetch("/api/ocr/smart-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image }),
+      });
+      const data: ScanResult = await res.json();
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? "Scan failed");
+      setResult(data);
+      if (data.documentType === "INSURANCE_CARD") setBillingTarget("client");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Scan échoué");
+    } finally {
+      setScanning(false);
+    }
   }
 
   function reset() {

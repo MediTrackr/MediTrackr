@@ -1,19 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, CheckCircle } from "lucide-react";
 
+const T = {
+  fr: {
+    title: "Mot de passe oublié",
+    desc: "Entrez votre courriel pour recevoir un lien de réinitialisation.",
+    emailPh: "votre@courriel.com",
+    send: "Envoyer le lien",
+    sending: "Envoi en cours...",
+    backToLogin: "Retour à la connexion",
+    sentTitle: "Lien envoyé",
+    sentDesc: "Vérifiez votre courriel pour le lien de réinitialisation.",
+  },
+  en: {
+    title: "Forgot password",
+    desc: "Enter your email to receive a reset link.",
+    emailPh: "your@email.com",
+    send: "Send link",
+    sending: "Sending...",
+    backToLogin: "Back to login",
+    sentTitle: "Link sent",
+    sentDesc: "Check your email for the reset link.",
+  },
+} as const;
+
 export default function ForgotPassword() {
   const supabase = createClient();
+  const [lang, setLang] = useState<"fr" | "en">("fr");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const stored = document.cookie.split("; ").find(r => r.startsWith("lang="))?.split("=")[1];
+    if (stored === "en") setLang("en");
+  }, []);
+
+  const t = T[lang];
   const inputCls = "w-full bg-black/40 border border-white/10 px-4 py-3 rounded-xl text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors";
 
   async function handleReset(e: React.FormEvent) {
@@ -51,20 +81,20 @@ export default function ForgotPassword() {
             <div className="flex flex-col items-center gap-4 py-4 text-center">
               <CheckCircle className="w-12 h-12 text-green-400" />
               <div>
-                <p className="text-white font-bold mb-1">Lien envoyé</p>
-                <p className="text-sm text-white/40">Vérifiez votre courriel pour le lien de réinitialisation.</p>
+                <p className="text-white font-bold mb-1">{t.sentTitle}</p>
+                <p className="text-sm text-white/40">{t.sentDesc}</p>
               </div>
               <Link href="/login" className="w-full">
                 <Button variant="outline" className="w-full border-white/10 text-white/60 hover:text-white rounded-xl">
-                  Retour à la connexion
+                  {t.backToLogin}
                 </Button>
               </Link>
             </div>
           ) : (
             <>
               <div>
-                <h2 className="text-lg font-bold text-white mb-1">Mot de passe oublié</h2>
-                <p className="text-sm text-white/40">Entrez votre courriel pour recevoir un lien de réinitialisation.</p>
+                <h2 className="text-lg font-bold text-white mb-1">{t.title}</h2>
+                <p className="text-sm text-white/40">{t.desc}</p>
               </div>
 
               {error && (
@@ -76,7 +106,7 @@ export default function ForgotPassword() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
                   <input
                     type="email"
-                    placeholder="votre@courriel.com"
+                    placeholder={t.emailPh}
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
@@ -88,12 +118,12 @@ export default function ForgotPassword() {
                   disabled={loading}
                   className="w-full bg-primary text-black font-bold rounded-xl h-11 disabled:opacity-50"
                 >
-                  {loading ? "Envoi en cours..." : "Envoyer le lien"}
+                  {loading ? t.sending : t.send}
                 </Button>
               </form>
 
               <Link href="/login" className="flex items-center justify-center gap-2 text-sm text-white/30 hover:text-white/60 transition-colors">
-                <ArrowLeft className="w-4 h-4" /> Retour à la connexion
+                <ArrowLeft className="w-4 h-4" /> {t.backToLogin}
               </Link>
             </>
           )}

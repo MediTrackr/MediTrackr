@@ -6,15 +6,16 @@ import { createClient } from "@/utils/supabase/client";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import Sidebar from "@/components/dashboard/sidebar";
 import StatCard from "@/components/ui/stat-card";
-import { 
-  DollarSign, 
-  Wallet, 
-  Clock, 
-  ArrowDownToLine, 
-  FilePlus, 
-  LayoutList, 
-  BarChart3, 
-  Send 
+import {
+  DollarSign,
+  Wallet,
+  Clock,
+  ArrowDownToLine,
+  FilePlus,
+  LayoutList,
+  BarChart3,
+  Send,
+  TrendingUp,
 } from "lucide-react";
 import HangingClaimsWidget, { HangingClaim } from "@/components/HangingClaimsWidget";
 import Link from "next/link";
@@ -24,7 +25,7 @@ interface RAMQStat {
   amount_received: number | null;
 }
 
-const ACTION_ICONS = [Send, FilePlus, LayoutList, DollarSign, ArrowDownToLine, BarChart3];
+const ACTION_ICONS = [Send, FilePlus, LayoutList, DollarSign, ArrowDownToLine, BarChart3, TrendingUp];
 
 const T = {
   fr: {

@@ -36,8 +36,6 @@ BEGIN
     expected_date,
     actual_amount,
     actual_date,
-    variance_amount,
-    variance_percentage,
     discrepancy_reason,
     resolved,
     calculation_basis
@@ -50,8 +48,6 @@ BEGIN
     COALESCE(NEW.submitted_at::date, CURRENT_DATE),
     COALESCE(NEW.amount_received, 0),
     CURRENT_DATE,
-    v_variance,
-    v_pct,
     CASE
       WHEN NEW.status = 'partial'       THEN 'Paiement partiel — montant inférieur au réclamé'
       WHEN v_variance < 0               THEN 'Paiement inférieur au montant réclamé'
@@ -69,8 +65,6 @@ BEGIN
   ON CONFLICT (claim_id) DO UPDATE SET
     actual_amount        = EXCLUDED.actual_amount,
     actual_date          = EXCLUDED.actual_date,
-    variance_amount      = EXCLUDED.variance_amount,
-    variance_percentage  = EXCLUDED.variance_percentage,
     discrepancy_reason   = EXCLUDED.discrepancy_reason,
     resolved             = EXCLUDED.resolved,
     updated_at           = NOW();
@@ -80,8 +74,17 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Unique constraint so ON CONFLICT works
-ALTER TABLE public.shadow_ledger
-  ADD CONSTRAINT IF NOT EXISTS shadow_ledger_claim_id_unique UNIQUE (claim_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'shadow_ledger_claim_id_unique'
+      AND conrelid = 'public.shadow_ledger'::regclass
+  ) THEN
+    ALTER TABLE public.shadow_ledger
+      ADD CONSTRAINT shadow_ledger_claim_id_unique UNIQUE (claim_id);
+  END IF;
+END $$;
 
 -- Drop old trigger if it exists, then recreate
 DROP TRIGGER IF EXISTS trg_sync_shadow_ledger ON public.ramq_claims;
@@ -99,7 +102,6 @@ INSERT INTO public.shadow_ledger (
   user_id, claim_id, payment_source,
   expected_amount, expected_date,
   actual_amount, actual_date,
-  variance_amount, variance_percentage,
   discrepancy_reason, resolved, calculation_basis
 )
 SELECT
@@ -110,10 +112,6 @@ SELECT
   COALESCE(submitted_at::date, created_at::date)                AS expected_date,
   COALESCE(amount_received, 0)                                   AS actual_amount,
   CURRENT_DATE                                                   AS actual_date,
-  COALESCE(amount_received, 0) - total_claimed                  AS variance_amount,
-  CASE WHEN total_claimed > 0
-    THEN ROUND(((COALESCE(amount_received,0) - total_claimed) / total_claimed) * 100, 2)
-    ELSE 0 END                                                   AS variance_percentage,
   CASE
     WHEN status = 'partial'                             THEN 'Paiement partiel — montant inférieur au réclamé'
     WHEN COALESCE(amount_received,0) < total_claimed   THEN 'Paiement inférieur au montant réclamé'

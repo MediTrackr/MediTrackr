@@ -5,11 +5,56 @@ import { Button } from "@/components/ui/button";
 import { User, Save, Loader2, CheckCircle } from "lucide-react";
 import { ALL_CATEGORIES, ProfessionalCategory, getCategoryConfig, REMUNERATION_MODES, RemunerationMode } from "@/utils/ramq-categories";
 
+const T = {
+  fr: {
+    pageTitle: "Paramètres du profil",
+    profCategories: "Catégories professionnelles RAMQ",
+    categoriesDesc: "Sélectionnez toutes les catégories qui s'appliquent. Chaque catégorie donne accès à ses propres codes de facturation RAMQ.",
+    selected: (n: number) => `${n} catégorie${n > 1 ? "s" : ""} sélectionnée${n > 1 ? "s" : ""}`,
+    remunerationMode: "Mode de rémunération RAMQ",
+    remunerationDesc: "Sélectionnez tous les modes applicables à votre pratique",
+    personalInfo: "Informations personnelles",
+    title: "Titre", firstName: "Prénom", lastName: "Nom",
+    ramqNumber: "Numéro RAMQ du professionnel",
+    license: "Numéro de permis / CPOM",
+    specialty: "Spécialité / Discipline",
+    phone: "Téléphone", email: "Courriel", address: "Adresse",
+    save: "Enregistrer", saving: "Enregistrement...", saved: "Sauvegardé ✓",
+    firstNamePh: "Prénom", lastNamePh: "Nom de famille",
+    specialtyPh: "ex. Cardiologie", emailPh: "votre@courriel.com",
+    addressPh: "Rue, Ville, Province, Code postal",
+  },
+  en: {
+    pageTitle: "Profile settings",
+    profCategories: "RAMQ professional categories",
+    categoriesDesc: "Select all categories that apply. Each category unlocks its own RAMQ billing codes.",
+    selected: (n: number) => `${n} categor${n > 1 ? "ies" : "y"} selected`,
+    remunerationMode: "RAMQ remuneration mode",
+    remunerationDesc: "Select all modes applicable to your practice",
+    personalInfo: "Personal information",
+    title: "Title", firstName: "First name", lastName: "Last name",
+    ramqNumber: "Professional RAMQ number",
+    license: "Licence / CPOM number",
+    specialty: "Specialty / Discipline",
+    phone: "Phone", email: "Email", address: "Address",
+    save: "Save", saving: "Saving...", saved: "Saved ✓",
+    firstNamePh: "First name", lastNamePh: "Last name",
+    specialtyPh: "e.g. Cardiology", emailPh: "your@email.com",
+    addressPh: "Street, City, Province, Postal code",
+  },
+} as const;
+
 export default function Profile() {
   const supabase = createClient();
+  const [lang, setLang] = useState<"fr" | "en">("fr");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const stored = document.cookie.split("; ").find(r => r.startsWith("lang="))?.split("=")[1];
+    if (stored === "en") setLang("en");
+  }, []);
 
   const [formData, setFormData] = useState({
     prefix: "Dr.",
@@ -81,7 +126,7 @@ export default function Profile() {
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       console.error(err);
-      alert('Échec de la sauvegarde.');
+      alert(lang === "en" ? "Save failed." : "Échec de la sauvegarde.");
     } finally {
       setSaving(false);
     }
@@ -98,6 +143,8 @@ export default function Profile() {
     );
   };
 
+  const t = T[lang];
+
   if (loading) {
     return (
       <main className="min-h-screen p-4 md:p-8 flex items-center justify-center">
@@ -109,7 +156,7 @@ export default function Profile() {
   return (
     <main className="min-h-screen p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <h1 className="text-4xl font-bold text-primary text-glow">Paramètres du profil</h1>
+        <h1 className="text-4xl font-bold text-primary text-glow">{t.pageTitle}</h1>
 
         <form onSubmit={handleSave} className="space-y-6">
 
@@ -118,15 +165,15 @@ export default function Profile() {
             <div className="p-6 border-b border-primary-500/10 flex items-center gap-2">
               <span className="text-xl">🏥</span>
               <div>
-                <h2 className="text-xl font-semibold">Catégories professionnelles RAMQ</h2>
+                <h2 className="text-xl font-semibold">{t.profCategories}</h2>
                 {selectedCategories.length > 0 && (
-                  <p className="text-xs text-primary mt-0.5">{selectedCategories.length} catégorie{selectedCategories.length > 1 ? 's' : ''} sélectionnée{selectedCategories.length > 1 ? 's' : ''}</p>
+                  <p className="text-xs text-primary mt-0.5">{t.selected(selectedCategories.length)}</p>
                 )}
               </div>
             </div>
             <div className="p-6">
               <p className="text-xs text-white/40 mb-4">
-                Sélectionnez toutes les catégories qui s&apos;appliquent. Chaque catégorie donne accès à ses propres codes de facturation RAMQ.
+                {t.categoriesDesc}
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {ALL_CATEGORIES.map(([key, cfg]) => {
@@ -160,8 +207,8 @@ export default function Profile() {
           {/* Remuneration modes — multi-select */}
           <div className="rounded-lg border border-primary-500/10 bg-secondary-900/50 overflow-hidden">
             <div className="p-6 border-b border-primary-500/10">
-              <h2 className="text-xl font-semibold">Mode de rémunération RAMQ</h2>
-              <p className="text-xs text-white/40 mt-1">Sélectionnez tous les modes applicables à votre pratique</p>
+              <h2 className="text-xl font-semibold">{t.remunerationMode}</h2>
+              <p className="text-xs text-white/40 mt-1">{t.remunerationDesc}</p>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-3">
               {(Object.entries(REMUNERATION_MODES) as [RemunerationMode, { label: string; description: string }][]).map(([mode, info]) => {
@@ -192,19 +239,19 @@ export default function Profile() {
           <div className="rounded-lg border border-primary-500/10 bg-secondary-900/50 overflow-hidden">
             <div className="p-6 border-b border-primary-500/10 flex items-center gap-2">
               <User className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-semibold">Informations personnelles</h2>
+              <h2 className="text-xl font-semibold">{t.personalInfo}</h2>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-foreground/70">Titre</label>
+                <label className="block text-sm font-medium text-foreground/70">{t.title}</label>
                 <select value={formData.prefix} onChange={e => setFormData(p => ({ ...p, prefix: e.target.value }))}
                   className="w-full bg-secondary-900/50 border border-primary-500/10 rounded-lg p-3 text-sm text-foreground">
                   <option>Dr.</option><option>Dre.</option><option>M.</option><option>Mme.</option>
                 </select>
               </div>
               {([
-                ["Prénom", "firstName", "text", "Prénom"],
-                ["Nom", "lastName", "text", "Nom de famille"],
+                [t.firstName, "firstName", "text", t.firstNamePh],
+                [t.lastName, "lastName", "text", t.lastNamePh],
               ] as const).map(([label, key, type, ph]) => (
                 <div key={key} className="space-y-1">
                   <label className="block text-sm font-medium text-foreground/70">{label}</label>
@@ -214,49 +261,47 @@ export default function Profile() {
               ))}
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-foreground/70">
-                  Numéro RAMQ du professionnel
-                </label>
+                <label className="block text-sm font-medium text-foreground/70">{t.ramqNumber}</label>
                 <input
                   type="text"
                   value={formData.ramq_number}
                   onChange={e => setFormData(p => ({ ...p, ramq_number: e.target.value }))}
-                  placeholder={selectedCategories.length === 1 ? (getCategoryConfig(selectedCategories[0])?.providerNote ?? '6 chiffres') : '6 chiffres'}
+                  placeholder={selectedCategories.length === 1 ? (getCategoryConfig(selectedCategories[0])?.providerNote ?? "6") : "6"}
                   maxLength={6}
                   className="w-full bg-secondary-900/50 border border-primary-500/10 rounded-lg p-3 text-sm text-foreground font-mono focus:outline-none focus:border-primary-500/40"
                 />
                 {selectedCategories.length === 1 && (
-                  <p className="text-[9px] text-white/30">Format : {getCategoryConfig(selectedCategories[0])?.providerNote}</p>
+                  <p className="text-[9px] text-white/30">{getCategoryConfig(selectedCategories[0])?.providerNote}</p>
                 )}
               </div>
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-foreground/70">Numéro de permis / CPOM</label>
+                <label className="block text-sm font-medium text-foreground/70">{t.license}</label>
                 <input type="text" value={formData.licenseNumber} onChange={e => setFormData(p => ({ ...p, licenseNumber: e.target.value }))} placeholder="CPOM #"
                   className="w-full bg-secondary-900/50 border border-primary-500/10 rounded-lg p-3 text-sm text-foreground font-mono focus:outline-none focus:border-primary-500/40" />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-foreground/70">Spécialité / Discipline</label>
-                <input type="text" value={formData.specialty} onChange={e => setFormData(p => ({ ...p, specialty: e.target.value }))} placeholder="ex. Cardiologie"
+                <label className="block text-sm font-medium text-foreground/70">{t.specialty}</label>
+                <input type="text" value={formData.specialty} onChange={e => setFormData(p => ({ ...p, specialty: e.target.value }))} placeholder={t.specialtyPh}
                   className="w-full bg-secondary-900/50 border border-primary-500/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary-500/40" />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-foreground/70">Téléphone</label>
+                <label className="block text-sm font-medium text-foreground/70">{t.phone}</label>
                 <input type="tel" value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} placeholder="(514) 555-1234"
                   className="w-full bg-secondary-900/50 border border-primary-500/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary-500/40" />
               </div>
 
               <div className="md:col-span-2 space-y-1">
-                <label className="block text-sm font-medium text-foreground/70">Courriel</label>
-                <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} placeholder="votre@courriel.com"
+                <label className="block text-sm font-medium text-foreground/70">{t.email}</label>
+                <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} placeholder={t.emailPh}
                   className="w-full bg-secondary-900/50 border border-primary-500/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary-500/40" />
               </div>
 
               <div className="md:col-span-2 space-y-1">
-                <label className="block text-sm font-medium text-foreground/70">Adresse</label>
-                <input type="text" value={formData.address} onChange={e => setFormData(p => ({ ...p, address: e.target.value }))} placeholder="Rue, Ville, Province, Code postal"
+                <label className="block text-sm font-medium text-foreground/70">{t.address}</label>
+                <input type="text" value={formData.address} onChange={e => setFormData(p => ({ ...p, address: e.target.value }))} placeholder={t.addressPh}
                   className="w-full bg-secondary-900/50 border border-primary-500/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary-500/40" />
               </div>
             </div>
@@ -265,7 +310,7 @@ export default function Profile() {
           <div className="flex justify-end">
             <Button type="submit" disabled={saving} className="gap-2 min-w-[160px] bg-primary text-black font-bold">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {saved ? 'Sauvegardé ✓' : saving ? 'Enregistrement...' : 'Enregistrer'}
+              {saved ? t.saved : saving ? t.saving : t.save}
             </Button>
           </div>
         </form>

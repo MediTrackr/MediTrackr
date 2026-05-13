@@ -73,8 +73,17 @@ ALTER TABLE public.shadow_ledger
 CREATE INDEX IF NOT EXISTS idx_shadow_ledger_pfsi_claim_id ON public.shadow_ledger(pfsi_claim_id);
 
 -- Unique constraint for PFSI entries (parallel to claim_id for RAMQ)
-ALTER TABLE public.shadow_ledger
-  ADD CONSTRAINT IF NOT EXISTS shadow_ledger_pfsi_claim_id_unique UNIQUE (pfsi_claim_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'shadow_ledger_pfsi_claim_id_unique'
+      AND conrelid = 'public.shadow_ledger'::regclass
+  ) THEN
+    ALTER TABLE public.shadow_ledger
+      ADD CONSTRAINT shadow_ledger_pfsi_claim_id_unique UNIQUE (pfsi_claim_id);
+  END IF;
+END $$;
 
 -- =====================================================
 -- 3. PFSI SHADOW LEDGER TRIGGER
@@ -97,7 +106,6 @@ BEGIN
     user_id, pfsi_claim_id, source_type, payment_source,
     expected_amount, expected_date,
     actual_amount, actual_date,
-    variance_amount, variance_percentage,
     discrepancy_reason, resolved, calculation_basis
   )
   VALUES (
@@ -106,7 +114,6 @@ BEGIN
     COALESCE(NEW.submitted_at::date, CURRENT_DATE),
     COALESCE(NEW.amount_received, 0),
     CURRENT_DATE,
-    v_variance, v_pct,
     CASE
       WHEN NEW.status = 'partial' THEN 'Paiement partiel PFSI — montant inférieur au réclamé'
       WHEN v_variance < 0         THEN 'Paiement inférieur au montant réclamé'
@@ -125,8 +132,6 @@ BEGIN
   ON CONFLICT (pfsi_claim_id) DO UPDATE SET
     actual_amount       = EXCLUDED.actual_amount,
     actual_date         = EXCLUDED.actual_date,
-    variance_amount     = EXCLUDED.variance_amount,
-    variance_percentage = EXCLUDED.variance_percentage,
     discrepancy_reason  = EXCLUDED.discrepancy_reason,
     resolved            = EXCLUDED.resolved,
     updated_at          = NOW();
@@ -155,8 +160,7 @@ SELECT
   COALESCE(user_id, doctor_id)                                  AS user_id,
   COALESCE(patient_name, 'Inconnu')                             AS patient_name,
   COALESCE(patient_ramq, patient_id)                            AS client_id,
-  CASE WHEN patient_dob ~ '^\d{4}-\d{2}-\d{2}$'
-    THEN patient_dob::DATE ELSE NULL END                        AS patient_dob,
+  NULL::DATE                                                    AS patient_dob,
   invoice_number,
   COALESCE((notes::JSONB ->> 'approval_type'), 'post')          AS approval_type,
   (notes::JSONB ->> 'specialty')                                AS specialty,
