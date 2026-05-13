@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, TrendingUp, TrendingDown } from "lucide-react";
+import { useLang } from "@/lib/i18n";
 
 interface Budget {
   id: string;
@@ -17,14 +18,47 @@ interface Budget {
   notes?: string;
 }
 
-function fmtDate(d?: string) {
+const T = {
+  fr: {
+    title: "Budgets",
+    newBudget: "Nouveau budget",
+    back: "Retour",
+    loading: "Chargement…",
+    noBudgets: "Aucun budget créé",
+    createBudget: "Créer un budget",
+    actualPlanned: "Réel / Planifié",
+    progress: "Progression",
+    overage: (amt: string) => `Dépassement : ${amt}`,
+    overBudget: "Dépassement de budget",
+    withinLimits: "Dans les limites",
+    locale: "fr-CA",
+  },
+  en: {
+    title: "Budgets",
+    newBudget: "New budget",
+    back: "Back",
+    loading: "Loading…",
+    noBudgets: "No budgets created",
+    createBudget: "Create a budget",
+    actualPlanned: "Actual / Planned",
+    progress: "Progress",
+    overage: (amt: string) => `Over budget by: ${amt}`,
+    overBudget: "Over budget",
+    withinLimits: "Within limits",
+    locale: "en-CA",
+  },
+} as const;
+
+function fmtDate(d?: string, locale = "fr-CA") {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("fr-CA", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export default function ViewBudgetsPage() {
   const supabase = createClient();
   const router   = useRouter();
+  const [lang]   = useLang();
+  const t        = T[lang];
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,16 +99,16 @@ export default function ViewBudgetsPage() {
         </div>
 
         <div className="relative z-10 m-6 p-6 bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl flex justify-between items-center">
-          <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">Budgets</h1>
+          <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">{t.title}</h1>
           <div className="flex gap-3">
             <Link href="/dashboard/budget/new">
               <Button className="gap-2 bg-primary text-black rounded-xl px-4 h-10 font-bold">
-                <Plus className="w-4 h-4" /> Nouveau budget
+                <Plus className="w-4 h-4" /> {t.newBudget}
               </Button>
             </Link>
             <Link href="/dashboard">
               <Button variant="ghost" className="gap-2 text-white/40 border border-white/10 bg-black/40 rounded-xl px-4 h-10">
-                <ArrowLeft className="w-4 h-4" /> Retour
+                <ArrowLeft className="w-4 h-4" /> {t.back}
               </Button>
             </Link>
           </div>
@@ -84,12 +118,12 @@ export default function ViewBudgetsPage() {
           <div className="h-full overflow-y-auto custom-scrollbar p-8">
 
             {loading ? (
-              <div className="text-center text-white/40 py-12">Chargement…</div>
+              <div className="text-center text-white/40 py-12">{t.loading}</div>
             ) : budgets.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-white/40 mb-4">Aucun budget créé</p>
+                <p className="text-white/40 mb-4">{t.noBudgets}</p>
                 <Link href="/dashboard/budget/new">
-                  <Button className="bg-primary text-black">Créer un budget</Button>
+                  <Button className="bg-primary text-black">{t.createBudget}</Button>
                 </Link>
               </div>
             ) : (
@@ -108,11 +142,11 @@ export default function ViewBudgetsPage() {
                           <div className="flex-1">
                             <h3 className="text-lg font-bold text-white mb-1">{budget.budget_name || "—"}</h3>
                             <p className="text-xs text-white/40">
-                              {fmtDate(budget.period_start)} — {fmtDate(budget.period_end)} · {budget.category}
+                              {fmtDate(budget.period_start, t.locale)} — {fmtDate(budget.period_end, t.locale)} · {budget.category}
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-[9px] uppercase font-bold text-white/30 mb-1">Réel / Planifié</p>
+                            <p className="text-[9px] uppercase font-bold text-white/30 mb-1">{t.actualPlanned}</p>
                             <p className={`text-2xl font-bold ${over ? "text-red-400" : "text-green-400"}`}>
                               ${actual.toFixed(2)}
                             </p>
@@ -120,10 +154,9 @@ export default function ViewBudgetsPage() {
                           </div>
                         </div>
 
-                        {/* Progress bar */}
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-xs">
-                            <span className="text-white/40">Progression</span>
+                            <span className="text-white/40">{t.progress}</span>
                             <span className={`font-bold ${over ? "text-red-400" : "text-green-400"}`}>
                               {pct.toFixed(1)}%
                             </span>
@@ -136,7 +169,7 @@ export default function ViewBudgetsPage() {
                           </div>
                           {over && (
                             <p className="text-[10px] text-red-400">
-                              Dépassement : ${overage.toFixed(2)}
+                              {t.overage(`$${overage.toFixed(2)}`)}
                             </p>
                           )}
                         </div>
@@ -145,12 +178,12 @@ export default function ViewBudgetsPage() {
                           {over ? (
                             <>
                               <TrendingUp className="w-4 h-4 text-red-400" />
-                              <span className="text-xs text-red-400 font-medium">Dépassement de budget</span>
+                              <span className="text-xs text-red-400 font-medium">{t.overBudget}</span>
                             </>
                           ) : (
                             <>
                               <TrendingDown className="w-4 h-4 text-green-400" />
-                              <span className="text-xs text-green-400 font-medium">Dans les limites</span>
+                              <span className="text-xs text-green-400 font-medium">{t.withinLimits}</span>
                             </>
                           )}
                         </div>

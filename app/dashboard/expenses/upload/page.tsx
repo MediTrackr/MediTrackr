@@ -6,14 +6,71 @@ import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Upload, Loader2, Plus, Trash2 } from "lucide-react";
 import SmartScanner, { SmartScanExpenseData } from "@/components/SmartScanner";
+import { useLang } from "@/lib/i18n";
 
-const CATEGORIES = [
-  "Fournitures de bureau", "Équipement", "Fournitures médicales", "Assurance",
-  "Services publics", "Salaires", "Loyer", "Marketing", "Déplacements", "Autre",
-];
+const T = {
+  fr: {
+    title: "Importer des dépenses",
+    back: "Retour",
+    scanMode: "Scanner un reçu",
+    manualMode: "Saisie manuelle",
+    csvMode: "Importer CSV",
+    csvTitle: "Format CSV",
+    csvColumns: "Colonnes attendues : Date, Description, Fournisseur, Catégorie, Montant",
+    csvNote: "Les champs contenant des virgules doivent être entourés de guillemets.",
+    expenseLines: "Lignes de dépenses",
+    add: "Ajouter",
+    descriptionLabel: "Description *",
+    vendorLabel: "Fournisseur",
+    categoryLabel: "Catégorie",
+    dateLabel: "Date",
+    amountLabel: "Montant ($) *",
+    descriptionPh: "ex. Papier imprimante",
+    vendorPh: "Nom du fournisseur",
+    total: "Total",
+    submit: "Enregistrer les dépenses",
+    cancel: "Annuler",
+    noExpenseAlert: "Veuillez ajouter au moins une dépense avec un montant valide.",
+    switchModeConfirm: "Changer de mode effacera les lignes actuelles. Continuer ?",
+    saveError: "Échec de l'enregistrement.",
+    categories: [
+      "Fournitures de bureau", "Équipement", "Fournitures médicales", "Assurance",
+      "Services publics", "Salaires", "Loyer", "Marketing", "Déplacements", "Autre",
+    ],
+  },
+  en: {
+    title: "Import expenses",
+    back: "Back",
+    scanMode: "Scan a receipt",
+    manualMode: "Manual entry",
+    csvMode: "Import CSV",
+    csvTitle: "CSV format",
+    csvColumns: "Expected columns: Date, Description, Vendor, Category, Amount",
+    csvNote: "Fields containing commas must be enclosed in quotes.",
+    expenseLines: "Expense lines",
+    add: "Add",
+    descriptionLabel: "Description *",
+    vendorLabel: "Vendor",
+    categoryLabel: "Category",
+    dateLabel: "Date",
+    amountLabel: "Amount ($) *",
+    descriptionPh: "e.g. Printer paper",
+    vendorPh: "Vendor name",
+    total: "Total",
+    submit: "Save expenses",
+    cancel: "Cancel",
+    noExpenseAlert: "Please add at least one expense with a valid amount.",
+    switchModeConfirm: "Switching modes will clear current rows. Continue?",
+    saveError: "Save failed.",
+    categories: [
+      "Office supplies", "Equipment", "Medical supplies", "Insurance",
+      "Utilities", "Salaries", "Rent", "Marketing", "Travel", "Other",
+    ],
+  },
+} as const;
 
 function localToday(): string {
-  return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
+  return new Date().toLocaleDateString("en-CA");
 }
 
 function parseCSVLine(line: string): string[] {
@@ -40,12 +97,16 @@ export default function UploadExpensePage() {
   const supabase     = createClient();
   const router       = useRouter();
   const searchParams = useSearchParams();
+  const [lang]       = useLang();
+  const t            = T[lang];
   const [loading, setLoading] = useState(false);
   const [mode, setMode]       = useState<"scan" | "manual" | "csv">(
     searchParams.get("from") === "scan" ? "scan" : "manual"
   );
+  const [rows, setRows] = useState<ExpenseRow[]>([
+    { description: "", category: t.categories[0], expense_date: localToday(), amount: "", vendor: "" },
+  ]);
 
-  // Read expense data injected by the standalone scanner
   useEffect(() => {
     const raw = sessionStorage.getItem("smartscan_expense");
     if (!raw) return;
@@ -54,7 +115,7 @@ export default function UploadExpensePage() {
       sessionStorage.removeItem("smartscan_expense");
       setRows([{
         description:  data.description || "",
-        category:     "Autre",
+        category:     t.categories[t.categories.length - 1],
         expense_date: data.date || localToday(),
         amount:       String(data.amount || ""),
         vendor:       data.vendor || "",
@@ -62,21 +123,18 @@ export default function UploadExpensePage() {
       setMode("manual");
     } catch { /* ignore */ }
   }, []);
-  const [rows, setRows]       = useState<ExpenseRow[]>([
-    { description: "", category: "Fournitures de bureau", expense_date: localToday(), amount: "", vendor: "" },
-  ]);
 
   const addRow = () =>
-    setRows(r => [...r, { description: "", category: "Fournitures de bureau", expense_date: localToday(), amount: "", vendor: "" }]);
+    setRows(r => [...r, { description: "", category: t.categories[0], expense_date: localToday(), amount: "", vendor: "" }]);
   const removeRow = (i: number) => setRows(r => r.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: string) =>
     setRows(r => r.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)));
 
   function switchMode(next: "manual" | "csv") {
     if (rows.length > 1 || rows[0].description) {
-      if (!confirm("Changer de mode effacera les lignes actuelles. Continuer ?")) return;
+      if (!confirm(t.switchModeConfirm)) return;
     }
-    setRows([{ description: "", category: "Fournitures de bureau", expense_date: localToday(), amount: "", vendor: "" }]);
+    setRows([{ description: "", category: t.categories[0], expense_date: localToday(), amount: "", vendor: "" }]);
     setMode(next);
   }
 
@@ -93,7 +151,7 @@ export default function UploadExpensePage() {
           expense_date: cols[0] || localToday(),
           description:  cols[1] || "",
           vendor:       cols[2] || "",
-          category:     cols[3] || "Autre",
+          category:     cols[3] || t.categories[t.categories.length - 1],
           amount:       cols[4] || "0",
         };
       }).filter(r => r.description);
@@ -105,7 +163,7 @@ export default function UploadExpensePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const valid = rows.filter(r => r.description && sanitizeAmount(r.amount) > 0);
-    if (!valid.length) { alert("Veuillez ajouter au moins une dépense avec un montant valide."); return; }
+    if (!valid.length) { alert(t.noExpenseAlert); return; }
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -124,8 +182,8 @@ export default function UploadExpensePage() {
       if (error) throw error;
       router.push("/dashboard/expenses/report");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Échec de l'enregistrement.";
-      alert(`Erreur : ${msg}`);
+      const msg = err instanceof Error ? err.message : t.saveError;
+      alert(`${msg}`);
     } finally {
       setLoading(false);
     }
@@ -138,10 +196,10 @@ export default function UploadExpensePage() {
                       shadow-[0_0_100px_rgba(0,0,0,0.9)] flex flex-col">
 
         <div className="relative z-10 m-6 p-6 bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl flex justify-between items-center">
-          <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">Importer des dépenses</h1>
+          <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">{t.title}</h1>
           <Link href="/dashboard">
             <Button variant="ghost" className="gap-2 text-white/40 border border-white/10 bg-black/40 rounded-xl px-4 h-10">
-              <ArrowLeft className="w-4 h-4" /> Retour
+              <ArrowLeft className="w-4 h-4" /> {t.back}
             </Button>
           </Link>
         </div>
@@ -149,25 +207,24 @@ export default function UploadExpensePage() {
         <div className="relative z-10 flex-1 mx-6 mb-6 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
           <form onSubmit={handleSubmit} className="h-full overflow-y-auto custom-scrollbar p-8 space-y-6">
 
-            {/* Mode toggle */}
             <div className="flex gap-3 flex-wrap">
               <button type="button" onClick={() => setMode("scan")}
                 className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${
                   mode === "scan" ? "bg-primary text-black border-primary" : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10"
                 }`}>
-                📷 Scanner un reçu
+                📷 {t.scanMode}
               </button>
               <button type="button" onClick={() => switchMode("manual")}
                 className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
                   mode === "manual" ? "bg-primary text-black border-primary" : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10"
                 }`}>
-                Saisie manuelle
+                {t.manualMode}
               </button>
               <button type="button" onClick={() => switchMode("csv")}
                 className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${
                   mode === "csv" ? "bg-primary text-black border-primary" : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10"
                 }`}>
-                <Upload className="w-3 h-3" /> Importer CSV
+                <Upload className="w-3 h-3" /> {t.csvMode}
               </button>
             </div>
 
@@ -176,7 +233,7 @@ export default function UploadExpensePage() {
                 onExpenseData={(data) => {
                   setRows([{
                     description:  data.description || "",
-                    category:     "Autre",
+                    category:     t.categories[t.categories.length - 1],
                     expense_date: data.date || localToday(),
                     amount:       String(data.amount || ""),
                     vendor:       data.vendor || "",
@@ -188,9 +245,9 @@ export default function UploadExpensePage() {
 
             {mode === "csv" && (
               <div className="card-medical p-6 border-l-4 border-primary space-y-3">
-                <h2 className="text-xs font-bold text-primary uppercase tracking-widest">Format CSV</h2>
-                <p className="text-xs text-white/40">Colonnes attendues : Date, Description, Fournisseur, Catégorie, Montant</p>
-                <p className="text-[10px] text-white/30">Les champs contenant des virgules doivent être entourés de guillemets.</p>
+                <h2 className="text-xs font-bold text-primary uppercase tracking-widest">{t.csvTitle}</h2>
+                <p className="text-xs text-white/40">{t.csvColumns}</p>
+                <p className="text-[10px] text-white/30">{t.csvNote}</p>
                 <input type="file" accept=".csv" onChange={handleCSV}
                   className="text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border file:border-primary/30 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
               </div>
@@ -198,10 +255,10 @@ export default function UploadExpensePage() {
 
             <div className="card-medical p-6 border-l-4 border-primary">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xs font-bold text-primary uppercase tracking-widest">Lignes de dépenses</h2>
+                <h2 className="text-xs font-bold text-primary uppercase tracking-widest">{t.expenseLines}</h2>
                 <Button type="button" onClick={addRow} size="sm"
                   className="gap-2 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20">
-                  <Plus className="w-4 h-4" /> Ajouter
+                  <Plus className="w-4 h-4" /> {t.add}
                 </Button>
               </div>
 
@@ -209,31 +266,31 @@ export default function UploadExpensePage() {
                 {rows.map((row, i) => (
                   <div key={i} className="grid grid-cols-12 gap-2 items-end p-3 bg-white/5 rounded-xl border border-white/5">
                     <div className="col-span-12 md:col-span-3 space-y-1">
-                      <label className="text-[9px] uppercase font-bold opacity-40">Description *</label>
+                      <label className="text-[9px] uppercase font-bold opacity-40">{t.descriptionLabel}</label>
                       <input type="text" value={row.description} onChange={e => updateRow(i, "description", e.target.value)}
                         className="w-full bg-black/40 border border-white/10 p-2 rounded-lg text-sm text-white"
-                        placeholder="ex. Papier imprimante" />
+                        placeholder={t.descriptionPh} />
                     </div>
                     <div className="col-span-6 md:col-span-2 space-y-1">
-                      <label className="text-[9px] uppercase font-bold opacity-40">Fournisseur</label>
+                      <label className="text-[9px] uppercase font-bold opacity-40">{t.vendorLabel}</label>
                       <input type="text" value={row.vendor} onChange={e => updateRow(i, "vendor", e.target.value)}
                         className="w-full bg-black/40 border border-white/10 p-2 rounded-lg text-sm text-white"
-                        placeholder="Nom du fournisseur" />
+                        placeholder={t.vendorPh} />
                     </div>
                     <div className="col-span-6 md:col-span-2 space-y-1">
-                      <label className="text-[9px] uppercase font-bold opacity-40">Catégorie</label>
+                      <label className="text-[9px] uppercase font-bold opacity-40">{t.categoryLabel}</label>
                       <select value={row.category} onChange={e => updateRow(i, "category", e.target.value)}
                         className="w-full bg-black border border-white/10 p-2 rounded-lg text-sm text-white">
-                        {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                        {t.categories.map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
                     <div className="col-span-6 md:col-span-2 space-y-1">
-                      <label className="text-[9px] uppercase font-bold opacity-40">Date</label>
+                      <label className="text-[9px] uppercase font-bold opacity-40">{t.dateLabel}</label>
                       <input type="date" value={row.expense_date} onChange={e => updateRow(i, "expense_date", e.target.value)}
                         className="w-full bg-black/40 border border-white/10 p-2 rounded-lg text-sm text-white" />
                     </div>
                     <div className="col-span-5 md:col-span-2 space-y-1">
-                      <label className="text-[9px] uppercase font-bold opacity-40">Montant ($) *</label>
+                      <label className="text-[9px] uppercase font-bold opacity-40">{t.amountLabel}</label>
                       <input type="number" step="0.01" min="0" value={row.amount}
                         onChange={e => updateRow(i, "amount", e.target.value)}
                         className="w-full bg-black/40 border border-white/10 p-2 rounded-lg text-sm text-white"
@@ -253,9 +310,9 @@ export default function UploadExpensePage() {
 
               <div className="mt-4 pt-4 border-t border-white/10 flex justify-end">
                 <div className="text-right">
-                  <p className="text-xs text-white/40 uppercase tracking-wider">Total</p>
+                  <p className="text-xs text-white/40 uppercase tracking-wider">{t.total}</p>
                   <p className="text-2xl font-bold text-primary">
-                    ${rows.reduce((s, r) => s + (sanitizeAmount(r.amount)), 0).toFixed(2)}
+                    ${rows.reduce((s, r) => s + sanitizeAmount(r.amount), 0).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -265,10 +322,10 @@ export default function UploadExpensePage() {
               <Button type="submit" disabled={loading}
                 className="flex-1 bg-primary text-black font-bold uppercase tracking-wider h-14 rounded-2xl shadow-cyan">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
-                Enregistrer les dépenses
+                {t.submit}
               </Button>
               <Link href="/dashboard" className="flex-1">
-                <Button variant="outline" type="button" className="w-full h-14 rounded-2xl border-white/20">Annuler</Button>
+                <Button variant="outline" type="button" className="w-full h-14 rounded-2xl border-white/20">{t.cancel}</Button>
               </Link>
             </div>
 
