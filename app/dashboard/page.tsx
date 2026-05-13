@@ -17,6 +17,7 @@ import {
   BarChart3,
   Send,
   TrendingUp,
+  FileSpreadsheet,
 } from "lucide-react";
 import HangingClaimsWidget, { HangingClaim } from "@/components/HangingClaimsWidget";
 import Link from "next/link";
@@ -26,7 +27,7 @@ interface RAMQStat {
   amount_received: number | null;
 }
 
-const ACTION_ICONS = [Send, FilePlus, LayoutList, DollarSign, ArrowDownToLine, BarChart3, TrendingUp];
+const ACTION_ICONS = [Send, FilePlus, LayoutList, DollarSign, ArrowDownToLine, FileSpreadsheet, BarChart3, TrendingUp];
 
 const T = {
   fr: {
@@ -40,6 +41,7 @@ const T = {
       { href: "/dashboard/invoice",          label: "Factures",                sub: "Historique et statuts" },
       { href: "/dashboard/payment/new",      label: "Enregistrer un paiement",  sub: "Saisir un paiement reçu" },
       { href: "/dashboard/expenses/upload",  label: "Importer un rapport",     sub: "CSV / PDF partenaire" },
+      { href: "/dashboard/expenses/report",  label: "Rapport de dépenses",     sub: "Résumé financier période" },
       { href: "/claims/reconciliation",      label: "Réconciliation",           sub: "Écarts attendus vs reçus" },
       { href: "/dashboard/budget",           label: "Budget",                  sub: "Planification financière" },
     ],
@@ -55,6 +57,7 @@ const T = {
       { href: "/dashboard/invoice",          label: "Invoices",            sub: "History and statuses" },
       { href: "/dashboard/payment/new",      label: "Record a payment",    sub: "Enter a received payment" },
       { href: "/dashboard/expenses/upload",  label: "Import a report",     sub: "CSV / PDF partner" },
+      { href: "/dashboard/expenses/report",  label: "Expense report",      sub: "Financial period summary" },
       { href: "/claims/reconciliation",      label: "Reconciliation",       sub: "Expected vs received gaps" },
       { href: "/dashboard/budget",           label: "Budget",              sub: "Financial planning" },
     ],

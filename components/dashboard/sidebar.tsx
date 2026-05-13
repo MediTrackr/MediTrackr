@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ScanText, FilePlus, Eye, CreditCard, QrCode, ChevronDown, Send } from "lucide-react";
+import { ScanText, FilePlus, Eye, CreditCard, QrCode, ChevronDown, Send, FileSpreadsheet } from "lucide-react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -16,6 +16,7 @@ const T = {
     invoices: "Factures",
     payments: "Paiements",
     budget: "Budget",
+    expenseReport: "Rapport de dépenses",
     dailyBatch: "Lot du jour",
     systemStatus: "État du système",
     ocrReady: "Prêt",
@@ -31,6 +32,7 @@ const T = {
     invoices: "Invoices",
     payments: "Payments",
     budget: "Budget",
+    expenseReport: "Expense report",
     dailyBatch: "Today's batch",
     systemStatus: "System status",
     ocrReady: "Ready",
@@ -110,6 +112,11 @@ export default function Sidebar({ lang = "fr" }: { lang?: "fr" | "en" }) {
               <Link href="/dashboard/budget" className="block">
                 <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-green-500/10 text-foreground/80">
                   <Eye className="w-4 h-4 text-green-400" /> {t.budget}
+                </Button>
+              </Link>
+              <Link href="/dashboard/expenses/report" className="block">
+                <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-primary/10 text-foreground/80">
+                  <FileSpreadsheet className="w-4 h-4 text-primary" /> {t.expenseReport}
                 </Button>
               </Link>
               <Link href="/dashboard/batch" className="block">
