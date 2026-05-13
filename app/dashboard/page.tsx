@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { useLang } from "@/lib/i18n";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import Sidebar from "@/components/dashboard/sidebar";
 import StatCard from "@/components/ui/stat-card";
@@ -64,16 +65,11 @@ export default function Dashboard() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [lang, setLang] = useState<"fr" | "en">("fr");
+  const [lang, setLang] = useLang();
   const [profile, setProfile] = useState({ prefix: "", name: "" });
   const [stats, setStats] = useState({ amountBilled: 0, amountPerceived: 0, pendingPayment: 0 });
   const [hangingClaims, setHangingClaims] = useState<HangingClaim[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const stored = document.cookie.split("; ").find(r => r.startsWith("lang="))?.split("=")[1];
-    if (stored === "en") setLang("en");
-  }, []);
 
   const fetchDashboardData = useCallback(async () => {
     try {

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useLang } from "@/lib/i18n";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -86,17 +87,138 @@ const emptyLine = (): ServiceLine => ({
 const inputCls = "w-full bg-black/40 border border-white/10 p-2.5 rounded-xl text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40";
 const labelCls = "text-[9px] uppercase font-bold text-white/30 tracking-wider";
 
+// ── i18n ──────────────────────────────────────────────────────────────────────
+
+const T = {
+  fr: {
+    title: 'Centre PFSI / IFHP',
+    subtitle: (n: number, total: string) => `Medavie Blue Cross · ${n} demande${n !== 1 ? 's' : ''} · ${total} réclamé`,
+    reconciliation: 'Réconciliation',
+    remittance: 'Avis de paiement',
+    newClaim: 'Nouvelle demande',
+    back: 'Retour',
+    totalClaimed: 'Réclamé',
+    totalReceived: 'Reçu',
+    gap: 'Écart',
+    reconciliationBlock: 'Réconciliation',
+    loading: 'Chargement...',
+    noClaims: 'Aucune demande PFSI',
+    noClaimsFilter: 'Aucune demande PFSI pour ce filtre',
+    createClaim: 'Créer une demande',
+    tabs: { all:'Tous', pending:'En attente', paid:'Payé', partial:'Partiel', rejected:'Rejeté', review_needed:'À réviser', draft:'Brouillon' },
+    statusLabels: { paid:'Payé', partial:'Partiel', rejected:'Rejeté', pending:'En attente', review_needed:'À réviser', draft:'Brouillon', submitted:'Soumis', approved:'Approuvé' },
+    actions: { submit:'Soumettre', markPaid:'Marquer payé', partial:'Partiel', rejected:'Rejeté', review:'À réviser', backDraft:'Retour brouillon', delete:'Supprimer' },
+    approval: { prior:'Préalable', post:'Postérieure' },
+    invalidClaim: 'Demande invalide :',
+    warnings: 'Avertissements :',
+    continueQ: '\n\nContinuer ?',
+    deleteConfirm: 'Supprimer cette demande PFSI ?',
+    form: {
+      title: 'Nouvelle demande de règlement',
+      cancel: 'Annuler',
+      steps: ['1. Patient', '2. Services', '3. Révision'],
+      stepLabels: ['Patient', 'Services', 'Révision'],
+      fullName: 'Nom complet du patient *',
+      namePlaceholder: 'Nom Prénom',
+      ifhpId: 'Numéro IFHP / PFSI *',
+      idPlaceholder: 'Ex: 1234567890AB',
+      dob: 'Date de naissance',
+      approvalType: "Type d'approbation",
+      specialty: 'Spécialité (si applicable)',
+      specialtyPh: 'Ex: Médecine générale',
+      referrer: 'Médecin référent (si spécialiste)',
+      referrerPh: 'Dr. Nom',
+      continue: 'Continuer',
+      serviceLines: 'Lignes de service',
+      add: 'Ajouter',
+      headers: ['Nº facture', 'Date service', 'Code honor.', 'Unités', 'Code CIM', 'Désig.', 'Montant', ''],
+      clinicalDetails: 'Détails cliniques / justification (section 4)',
+      clinicalPh: 'Détails cliniques ou justification de la demande...',
+      back: 'Retour',
+      review: 'Réviser',
+      reviewTitle: 'Révision de la demande',
+      patient: 'Patient',
+      ifhpIdLabel: 'ID IFHP',
+      birth: 'Naissance',
+      approvalLabel: 'Approbation',
+      servicesLabel: (n: number) => `Services (${n} ligne${n > 1 ? 's' : ''})`,
+      submitClaim: 'Soumettre la demande',
+      saveDraft: 'Sauvegarder comme brouillon',
+      modify: '← Modifier',
+      saving: 'Enregistrement…',
+    },
+  },
+  en: {
+    title: 'PFSI / IFHP Center',
+    subtitle: (n: number, total: string) => `Medavie Blue Cross · ${n} claim${n !== 1 ? 's' : ''} · ${total} claimed`,
+    reconciliation: 'Reconciliation',
+    remittance: 'Remittance notice',
+    newClaim: 'New claim',
+    back: 'Back',
+    totalClaimed: 'Claimed',
+    totalReceived: 'Received',
+    gap: 'Gap',
+    reconciliationBlock: 'Reconciliation',
+    loading: 'Loading...',
+    noClaims: 'No PFSI claims',
+    noClaimsFilter: 'No PFSI claims for this filter',
+    createClaim: 'Create a claim',
+    tabs: { all:'All', pending:'Pending', paid:'Paid', partial:'Partial', rejected:'Rejected', review_needed:'Review', draft:'Draft' },
+    statusLabels: { paid:'Paid', partial:'Partial', rejected:'Rejected', pending:'Pending', review_needed:'Review', draft:'Draft', submitted:'Submitted', approved:'Approved' },
+    actions: { submit:'Submit', markPaid:'Mark paid', partial:'Partial', rejected:'Rejected', review:'Review', backDraft:'Back to draft', delete:'Delete' },
+    approval: { prior:'Prior', post:'Post' },
+    invalidClaim: 'Invalid claim:',
+    warnings: 'Warnings:',
+    continueQ: '\n\nContinue?',
+    deleteConfirm: 'Delete this PFSI claim?',
+    form: {
+      title: 'New settlement claim',
+      cancel: 'Cancel',
+      steps: ['1. Patient', '2. Services', '3. Review'],
+      stepLabels: ['Patient', 'Services', 'Review'],
+      fullName: 'Full patient name *',
+      namePlaceholder: 'Last First',
+      ifhpId: 'IFHP / PFSI number *',
+      idPlaceholder: 'e.g. 1234567890AB',
+      dob: 'Date of birth',
+      approvalType: 'Approval type',
+      specialty: 'Specialty (if applicable)',
+      specialtyPh: 'e.g. General medicine',
+      referrer: 'Referring physician (if specialist)',
+      referrerPh: 'Dr. Name',
+      continue: 'Continue',
+      serviceLines: 'Service lines',
+      add: 'Add',
+      headers: ['Invoice #', 'Service date', 'Fee code', 'Units', 'ICD code', 'Desig.', 'Amount', ''],
+      clinicalDetails: 'Clinical details / justification (section 4)',
+      clinicalPh: 'Clinical details or justification for the claim...',
+      back: 'Back',
+      review: 'Review',
+      reviewTitle: 'Claim review',
+      patient: 'Patient',
+      ifhpIdLabel: 'IFHP ID',
+      birth: 'Birth',
+      approvalLabel: 'Approval',
+      servicesLabel: (n: number) => `Services (${n} line${n > 1 ? 's' : ''})`,
+      submitClaim: 'Submit claim',
+      saveDraft: 'Save as draft',
+      modify: '← Edit',
+      saving: 'Saving…',
+    },
+  },
+} as const;
+
 // ── Summary card ───────────────────────────────────────────────────────────────
 
-function SummaryCard({ statusKey, count, amount, active, onClick }: {
-  statusKey: string; count: number; amount: number; active: boolean; onClick: () => void;
+function SummaryCard({ statusKey, label, count, amount, active, onClick }: {
+  statusKey: string; label: string; count: number; amount: number; active: boolean; onClick: () => void;
 }) {
   const cfg = STATUS_CONFIG[statusKey];
   return (
     <button onClick={onClick}
       className={`flex-1 min-w-[110px] p-4 rounded-2xl border text-left transition-all cursor-pointer
         ${active ? `${cfg.border} ${cfg.card} scale-[1.02]` : 'border-white/8 bg-white/2 hover:border-white/20'}`}>
-      <div className="flex items-center gap-2 mb-2">{cfg.icon}<span className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/50">{cfg.label}</span></div>
+      <div className="flex items-center gap-2 mb-2">{cfg.icon}<span className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/50">{label}</span></div>
       <p className="text-xl font-black text-white">{count}</p>
       <p className="text-[10px] text-white/30 mt-0.5">${amount.toFixed(2)}</p>
     </button>
@@ -108,6 +230,8 @@ function SummaryCard({ statusKey, count, amount, active, onClick }: {
 export default function PFSICommandCenter() {
   const supabase = createClient();
   const router = useRouter();
+  const [lang] = useLang();
+  const t = T[lang];
 
   const [claims, setClaims]     = useState<PFSIClaim[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -206,13 +330,13 @@ export default function PFSICommandCenter() {
       specialty: claim.specialty, referring_prescriber: claim.referring_prescriber,
       service_lines: claim.service_lines, additional_info: claim.additional_info,
     });
-    if (!result.isValid) { alert(`Demande invalide :\n\n${result.errors.join('\n')}`); return; }
-    if (result.warnings.length > 0) { if (!window.confirm(`Avertissements :\n\n${result.warnings.join('\n')}\n\nContinuer ?`)) return; }
+    if (!result.isValid) { alert(`${t.invalidClaim}\n\n${result.errors.join('\n')}`); return; }
+    if (result.warnings.length > 0) { if (!window.confirm(`${t.warnings}\n\n${result.warnings.join('\n')}${t.continueQ}`)) return; }
     await updateStatus(claim, 'submitted');
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cette demande PFSI ?')) return;
+    if (!confirm(t.deleteConfirm)) return;
     await supabase.from('pfsi_claims').delete().eq('id', id);
     setClaims(c => c.filter(x => x.id !== id));
   };
@@ -253,7 +377,7 @@ export default function PFSICommandCenter() {
 
     if (status === 'submitted') {
       const result = validatePFSIClaim({ ...form, service_lines: form.lines });
-      if (!result.isValid) { alert(`Demande invalide :\n\n${result.errors.join('\n')}`); setSubmitting(false); return; }
+      if (!result.isValid) { alert(`${t.invalidClaim}\n\n${result.errors.join('\n')}`); setSubmitting(false); return; }
     }
 
     await supabase.from('pfsi_claims').insert({
@@ -280,13 +404,13 @@ export default function PFSICommandCenter() {
   };
 
   const tabs: { key: FilterTab; label: string; count: number }[] = [
-    { key: 'all', label: 'Tous', count: claims.length },
-    { key: 'pending', label: 'En attente', count: summary.pending.count },
-    { key: 'paid', label: 'Payé', count: summary.paid.count },
-    { key: 'partial', label: 'Partiel', count: summary.partial.count },
-    { key: 'rejected', label: 'Rejeté', count: summary.rejected.count },
-    { key: 'review_needed', label: 'À réviser', count: summary.review_needed.count },
-    { key: 'draft', label: 'Brouillon', count: summary.draft.count },
+    { key: 'all',           label: t.tabs.all,           count: claims.length },
+    { key: 'pending',       label: t.tabs.pending,       count: summary.pending.count },
+    { key: 'paid',          label: t.tabs.paid,          count: summary.paid.count },
+    { key: 'partial',       label: t.tabs.partial,       count: summary.partial.count },
+    { key: 'rejected',      label: t.tabs.rejected,      count: summary.rejected.count },
+    { key: 'review_needed', label: t.tabs.review_needed, count: summary.review_needed.count },
+    { key: 'draft',         label: t.tabs.draft,         count: summary.draft.count },
   ];
 
   // ── NEW CLAIM FORM ──────────────────────────────────────────────────────────
@@ -301,19 +425,19 @@ export default function PFSICommandCenter() {
               <Shield className="w-4 h-4 text-primary" />
               <span className="text-[10px] uppercase font-bold text-primary/60 tracking-widest">PFSI / IFHP</span>
             </div>
-            <h1 className="text-xl font-black text-white uppercase italic tracking-tight">Nouvelle demande de règlement</h1>
+            <h1 className="text-xl font-black text-white uppercase italic tracking-tight">{t.form.title}</h1>
           </div>
-          <button onClick={() => { setView('list'); setStep(1); }} className="text-white/30 hover:text-white/60 text-xs">Annuler</button>
+          <button onClick={() => { setView('list'); setStep(1); }} className="text-white/30 hover:text-white/60 text-xs">{t.form.cancel}</button>
         </div>
 
         {/* Step indicator */}
         <div className="mx-6 flex gap-2">
-          {['Patient', 'Services', 'Révision'].map((_, i) => (
+          {t.form.stepLabels.map((_, i) => (
             <div key={i} className={`flex-1 h-1 rounded-full transition-all ${i + 1 <= step ? 'bg-primary' : 'bg-white/10'}`} />
           ))}
         </div>
         <div className="mx-6 flex justify-between">
-          {['1. Patient', '2. Services', '3. Révision'].map((label, i) => (
+          {t.form.steps.map((label, i) => (
             <span key={i} className={`text-[10px] font-bold uppercase tracking-wide ${i + 1 === step ? 'text-primary' : 'text-white/25'}`}>{label}</span>
           ))}
         </div>
@@ -325,45 +449,45 @@ export default function PFSICommandCenter() {
               <div className="bg-black/40 border border-white/8 rounded-2xl p-5 flex flex-col gap-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2 space-y-1.5">
-                    <label className={labelCls}>Nom complet du patient *</label>
-                    <input className={inputCls} value={form.patient_name} onChange={e => setForm(f => ({ ...f, patient_name: e.target.value }))} placeholder="Nom Prénom" />
+                    <label className={labelCls}>{t.form.fullName}</label>
+                    <input className={inputCls} value={form.patient_name} onChange={e => setForm(f => ({ ...f, patient_name: e.target.value }))} placeholder={t.form.namePlaceholder} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className={labelCls}>Numéro IFHP / PFSI *</label>
-                    <input className={inputCls} value={form.client_id} onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))} placeholder="Ex: 1234567890AB" maxLength={16} />
+                    <label className={labelCls}>{t.form.ifhpId}</label>
+                    <input className={inputCls} value={form.client_id} onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))} placeholder={t.form.idPlaceholder} maxLength={16} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className={labelCls}>Date de naissance</label>
+                    <label className={labelCls}>{t.form.dob}</label>
                     <input type="date" className={inputCls} value={form.patient_dob} onChange={e => setForm(f => ({ ...f, patient_dob: e.target.value }))} />
                   </div>
                 </div>
               </div>
 
               <div className="bg-black/40 border border-white/8 rounded-2xl p-5 flex flex-col gap-4">
-                <p className={labelCls}>Type d'approbation</p>
+                <p className={labelCls}>{t.form.approvalType}</p>
                 <div className="flex gap-3">
-                  {(['prior', 'post'] as const).map(t => (
-                    <button key={t} onClick={() => setForm(f => ({ ...f, approval_type: t }))}
-                      className={`flex-1 py-3 rounded-xl border text-sm font-bold uppercase tracking-wide transition-all ${form.approval_type === t ? 'bg-primary/20 border-primary/50 text-primary' : 'border-white/10 text-white/30 hover:border-white/20'}`}>
-                      {t === 'prior' ? 'Préalable' : 'Postérieure'}
+                  {(['prior', 'post'] as const).map(ap => (
+                    <button key={ap} onClick={() => setForm(f => ({ ...f, approval_type: ap }))}
+                      className={`flex-1 py-3 rounded-xl border text-sm font-bold uppercase tracking-wide transition-all ${form.approval_type === ap ? 'bg-primary/20 border-primary/50 text-primary' : 'border-white/10 text-white/30 hover:border-white/20'}`}>
+                      {ap === 'prior' ? t.approval.prior : t.approval.post}
                     </button>
                   ))}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className={labelCls}>Spécialité (si applicable)</label>
-                    <input className={inputCls} value={form.specialty} onChange={e => setForm(f => ({ ...f, specialty: e.target.value }))} placeholder="Ex: Médecine générale" />
+                    <label className={labelCls}>{t.form.specialty}</label>
+                    <input className={inputCls} value={form.specialty} onChange={e => setForm(f => ({ ...f, specialty: e.target.value }))} placeholder={t.form.specialtyPh} />
                   </div>
                   <div className="space-y-1.5">
-                    <label className={labelCls}>Médecin référent (si spécialiste)</label>
-                    <input className={inputCls} value={form.referring_prescriber} onChange={e => setForm(f => ({ ...f, referring_prescriber: e.target.value }))} placeholder="Dr. Nom" />
+                    <label className={labelCls}>{t.form.referrer}</label>
+                    <input className={inputCls} value={form.referring_prescriber} onChange={e => setForm(f => ({ ...f, referring_prescriber: e.target.value }))} placeholder={t.form.referrerPh} />
                   </div>
                 </div>
               </div>
 
               <Button onClick={() => setStep(2)} disabled={!form.patient_name.trim() || !form.client_id.trim()}
                 className="bg-primary text-black font-black h-12 rounded-2xl disabled:opacity-40">
-                Continuer <ChevronRight className="w-4 h-4 ml-1" />
+                {t.form.continue} <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           )}
@@ -372,14 +496,14 @@ export default function PFSICommandCenter() {
             <div className="flex flex-col gap-4">
               <div className="bg-black/40 border border-white/8 rounded-2xl p-5 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
-                  <p className={labelCls}>Lignes de service</p>
+                  <p className={labelCls}>{t.form.serviceLines}</p>
                   <button onClick={() => setForm(f => ({ ...f, lines: [...f.lines, emptyLine()] }))}
                     className="flex items-center gap-1 text-primary text-xs font-bold hover:text-primary/70">
-                    <Plus className="w-3.5 h-3.5" /> Ajouter
+                    <Plus className="w-3.5 h-3.5" /> {t.form.add}
                   </button>
                 </div>
                 <div className="hidden sm:grid grid-cols-[1fr_1fr_80px_55px_1.5fr_55px_90px_28px] gap-2 px-1">
-                  {['Nº facture', 'Date service', 'Code honor.', 'Unités', 'Code CIM', 'Désig.', 'Montant', ''].map(h => (
+                  {t.form.headers.map(h => (
                     <span key={h} className="text-[9px] uppercase font-bold text-white/20">{h}</span>
                   ))}
                 </div>
@@ -403,16 +527,16 @@ export default function PFSICommandCenter() {
               </div>
 
               <div className="bg-black/40 border border-white/8 rounded-2xl p-5 space-y-1.5">
-                <label className={labelCls}>Détails cliniques / justification (section 4)</label>
+                <label className={labelCls}>{t.form.clinicalDetails}</label>
                 <textarea rows={3} className={inputCls + ' resize-none'} value={form.additional_info}
                   onChange={e => setForm(f => ({ ...f, additional_info: e.target.value }))}
-                  placeholder="Détails cliniques ou justification de la demande..." />
+                  placeholder={t.form.clinicalPh} />
               </div>
 
               <div className="flex gap-3">
-                <Button variant="ghost" onClick={() => setStep(1)} className="flex-1 border border-white/10 text-white/40 rounded-2xl h-12">Retour</Button>
+                <Button variant="ghost" onClick={() => setStep(1)} className="flex-1 border border-white/10 text-white/40 rounded-2xl h-12">{t.form.back}</Button>
                 <Button onClick={() => setStep(3)} className="flex-1 bg-primary text-black font-black h-12 rounded-2xl">
-                  Réviser <ChevronRight className="w-4 h-4 ml-1" />
+                  {t.form.review} <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
             </div>
@@ -424,15 +548,15 @@ export default function PFSICommandCenter() {
               <div className="flex flex-col gap-4">
                 <ValidationPanel result={{ ...validation, issues: validation.issues }} />
                 <div className="bg-black/40 border border-primary/20 rounded-2xl p-5 space-y-3">
-                  <p className={labelCls + ' text-primary/60'}>Révision de la demande</p>
+                  <p className={labelCls + ' text-primary/60'}>{t.form.reviewTitle}</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><p className={labelCls}>Patient</p><p className="text-sm font-bold text-white">{form.patient_name}</p></div>
-                    <div><p className={labelCls}>ID IFHP</p><p className="text-sm font-mono text-primary">{form.client_id}</p></div>
-                    <div><p className={labelCls}>Naissance</p><p className="text-sm text-white/70">{form.patient_dob || '—'}</p></div>
-                    <div><p className={labelCls}>Approbation</p><p className="text-sm text-white/70">{form.approval_type === 'prior' ? 'Préalable' : 'Postérieure'}</p></div>
+                    <div><p className={labelCls}>{t.form.patient}</p><p className="text-sm font-bold text-white">{form.patient_name}</p></div>
+                    <div><p className={labelCls}>{t.form.ifhpIdLabel}</p><p className="text-sm font-mono text-primary">{form.client_id}</p></div>
+                    <div><p className={labelCls}>{t.form.birth}</p><p className="text-sm text-white/70">{form.patient_dob || '—'}</p></div>
+                    <div><p className={labelCls}>{t.form.approvalLabel}</p><p className="text-sm text-white/70">{form.approval_type === 'prior' ? t.approval.prior : t.approval.post}</p></div>
                   </div>
                   <div className="pt-3 border-t border-white/5">
-                    <p className={labelCls + ' mb-2'}>Services ({form.lines.length} ligne{form.lines.length > 1 ? 's' : ''})</p>
+                    <p className={labelCls + ' mb-2'}>{t.form.servicesLabel(form.lines.length)}</p>
                     {form.lines.map((l, i) => (
                       <div key={i} className="flex justify-between text-xs text-white/60 py-1 border-b border-white/5">
                         <span>{l.date_of_service || '—'} · {l.icd_code || l.fee_code || '—'}</span>
@@ -447,13 +571,13 @@ export default function PFSICommandCenter() {
                 <div className="flex flex-col gap-2">
                   <Button onClick={() => saveClaim('submitted')} disabled={submitting || !validation.isValid}
                     className="bg-primary text-black font-black h-12 rounded-2xl disabled:opacity-40">
-                    {submitting ? 'Enregistrement…' : 'Soumettre la demande'}
+                    {submitting ? t.form.saving : t.form.submitClaim}
                   </Button>
                   <Button onClick={() => saveClaim('draft')} disabled={submitting} variant="ghost"
                     className="border border-white/10 text-white/40 h-10 rounded-2xl text-sm">
-                    Sauvegarder comme brouillon
+                    {t.form.saveDraft}
                   </Button>
-                  <Button onClick={() => setStep(2)} variant="ghost" className="text-white/25 text-xs h-8">← Modifier</Button>
+                  <Button onClick={() => setStep(2)} variant="ghost" className="text-white/25 text-xs h-8">{t.form.modify}</Button>
                 </div>
               </div>
             );
@@ -474,29 +598,29 @@ export default function PFSICommandCenter() {
           <div className="flex items-center gap-3">
             <Shield className="w-6 h-6 text-primary" />
             <div>
-              <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter leading-none">Centre PFSI / IFHP</h1>
+              <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter leading-none">{t.title}</h1>
               <p className="text-[10px] text-white/30 tracking-[0.2em] uppercase mt-0.5">
-                Medavie Blue Cross · {claims.length} demande{claims.length !== 1 ? 's' : ''} · ${summary.total_claimed.toFixed(2)} réclamé
+                {t.subtitle(claims.length, `$${summary.total_claimed.toFixed(2)}`)}
               </p>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Link href="/claims/reconciliation">
               <Button variant="ghost" className="gap-2 text-white/50 border border-white/10 bg-black/40 rounded-xl px-3 h-9 text-xs hover:text-white/80 hover:border-white/20">
-                <BarChart3 className="w-3.5 h-3.5" /> Réconciliation
+                <BarChart3 className="w-3.5 h-3.5" /> {t.reconciliation}
               </Button>
             </Link>
             <Link href="/claims/pfsi-remittance">
               <Button variant="ghost" className="gap-2 text-white/50 border border-white/10 bg-black/40 rounded-xl px-3 h-9 text-xs hover:text-white/80 hover:border-white/20">
-                <FileText className="w-3.5 h-3.5" /> Avis de paiement
+                <FileText className="w-3.5 h-3.5" /> {t.remittance}
               </Button>
             </Link>
             <Button onClick={() => setView('new')} className="gap-2 bg-primary text-black rounded-xl px-4 h-9 text-xs font-bold">
-              <Plus className="w-3.5 h-3.5" /> Nouvelle demande
+              <Plus className="w-3.5 h-3.5" /> {t.newClaim}
             </Button>
             <Link href="/dashboard">
               <Button variant="ghost" className="gap-2 text-primary border border-primary/20 bg-black/40 rounded-xl px-3 h-9 text-xs">
-                <ArrowLeft className="w-3.5 h-3.5" /> Retour
+                <ArrowLeft className="w-3.5 h-3.5" /> {t.back}
               </Button>
             </Link>
           </div>
@@ -507,16 +631,16 @@ export default function PFSICommandCenter() {
           {/* Summary cards */}
           <div className="flex gap-3 flex-wrap">
             {(['paid','partial','rejected','pending','review_needed'] as const).map(key => (
-              <SummaryCard key={key} statusKey={key} count={summary[key].count} amount={summary[key].amount}
+              <SummaryCard key={key} statusKey={key} label={t.statusLabels[key]} count={summary[key].count} amount={summary[key].amount}
                 active={filter === key} onClick={() => setFilter(filter === key ? 'all' : key)} />
             ))}
             <div className="flex-1 min-w-[180px] p-4 rounded-2xl border border-white/8 bg-white/2 flex flex-col justify-between">
-              <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/30 mb-3">Réconciliation</p>
+              <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/30 mb-3">{t.reconciliationBlock}</p>
               <div className="space-y-1.5">
-                <div className="flex justify-between"><span className="text-[10px] text-white/40">Réclamé</span><span className="text-sm font-bold text-white">${summary.total_claimed.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-[10px] text-white/40">Reçu</span><span className="text-sm font-bold text-green-400">${summary.total_received.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-[10px] text-white/40">{t.totalClaimed}</span><span className="text-sm font-bold text-white">${summary.total_claimed.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-[10px] text-white/40">{t.totalReceived}</span><span className="text-sm font-bold text-green-400">${summary.total_received.toFixed(2)}</span></div>
                 <div className="w-full h-px bg-white/8 my-1" />
-                <div className="flex justify-between"><span className="text-[10px] text-white/40">Écart</span>
+                <div className="flex justify-between"><span className="text-[10px] text-white/40">{t.gap}</span>
                   <span className={`text-sm font-bold ${summary.total_claimed - summary.total_received > 0 ? 'text-red-400' : 'text-green-400'}`}>
                     ${Math.abs(summary.total_claimed - summary.total_received).toFixed(2)}
                   </span>
@@ -543,8 +667,8 @@ export default function PFSICommandCenter() {
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Shield className="w-10 h-10 text-white/10" />
-              <p className="text-white/30 text-sm">Aucune demande PFSI{filter !== 'all' ? ' pour ce filtre' : ''}</p>
-              {filter === 'all' && <Button onClick={() => setView('new')} className="bg-primary text-black mt-2 text-xs">Créer une demande</Button>}
+              <p className="text-white/30 text-sm">{filter !== 'all' ? t.noClaimsFilter : t.noClaims}</p>
+              {filter === 'all' && <Button onClick={() => setView('new')} className="bg-primary text-black mt-2 text-xs">{t.createClaim}</Button>}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -574,13 +698,13 @@ export default function PFSICommandCenter() {
                         </div>
                         <div>
                           <p className="text-[9px] text-white/25 uppercase tracking-wider mb-0.5">Approbation</p>
-                          <p className="text-xs text-white/60">{claim.approval_type === 'prior' ? 'Préalable' : 'Postérieure'}</p>
+                          <p className="text-xs text-white/60">{claim.approval_type === 'prior' ? t.approval.prior : t.approval.post}</p>
                         </div>
                         <div className="hidden md:block">
                           <p className="text-[9px] text-white/25 uppercase tracking-wider mb-0.5">Réclamé</p>
                           <p className="text-sm font-bold text-white/80">${claim.total_claimed.toFixed(2)}</p>
                         </div>
-                        <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border ${cfg.badge}`}>{cfg.label}</span>
+                        <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border ${cfg.badge}`}>{t.statusLabels[ds as keyof typeof t.statusLabels] ?? cfg.label}</span>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button onClick={e => { e.stopPropagation(); handleGeneratePDF(claim); }}
@@ -620,20 +744,20 @@ export default function PFSICommandCenter() {
                         {/* Actions */}
                         <div className="flex gap-2 flex-wrap">
                           {ds === 'draft' && validation.isValid && (
-                            <ActionBtn color="blue" onClick={() => handleSubmit(claim)} disabled={!!updating}>Soumettre</ActionBtn>
+                            <ActionBtn color="blue" onClick={() => handleSubmit(claim)} disabled={!!updating}>{t.actions.submit}</ActionBtn>
                           )}
                           {(ds === 'pending' || ds === 'approved') && (<>
-                            <ActionBtn color="green"  onClick={() => updateStatus(claim, 'paid')}          disabled={!!updating}>Marquer payé</ActionBtn>
-                            <ActionBtn color="yellow" onClick={() => updateStatus(claim, 'partial')}       disabled={!!updating}>Partiel</ActionBtn>
-                            <ActionBtn color="red"    onClick={() => updateStatus(claim, 'rejected')}      disabled={!!updating}>Rejeté</ActionBtn>
-                            <ActionBtn color="purple" onClick={() => updateStatus(claim, 'review_needed')} disabled={!!updating}>À réviser</ActionBtn>
+                            <ActionBtn color="green"  onClick={() => updateStatus(claim, 'paid')}          disabled={!!updating}>{t.actions.markPaid}</ActionBtn>
+                            <ActionBtn color="yellow" onClick={() => updateStatus(claim, 'partial')}       disabled={!!updating}>{t.actions.partial}</ActionBtn>
+                            <ActionBtn color="red"    onClick={() => updateStatus(claim, 'rejected')}      disabled={!!updating}>{t.actions.rejected}</ActionBtn>
+                            <ActionBtn color="purple" onClick={() => updateStatus(claim, 'review_needed')} disabled={!!updating}>{t.actions.review}</ActionBtn>
                           </>)}
                           {(ds === 'paid' || ds === 'partial' || ds === 'rejected' || ds === 'review_needed') && (
-                            <ActionBtn color="gray" onClick={() => updateStatus(claim, 'draft')} disabled={!!updating}>Retour brouillon</ActionBtn>
+                            <ActionBtn color="gray" onClick={() => updateStatus(claim, 'draft')} disabled={!!updating}>{t.actions.backDraft}</ActionBtn>
                           )}
                           <button onClick={() => handleDelete(claim.id)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs border border-red-500/15 text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition-all ml-auto">
-                            <Trash2 className="w-3 h-3" /> Supprimer
+                            <Trash2 className="w-3 h-3" /> {t.actions.delete}
                           </button>
                         </div>
                       </div>

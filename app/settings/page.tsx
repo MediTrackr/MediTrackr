@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useLang } from "@/lib/i18n";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
@@ -9,8 +10,61 @@ import {
   ClipboardList, LayoutDashboard, FileStack, PieChart, Settings, Trash2, CreditCard, ShieldCheck
 } from "lucide-react";
 
+const T = {
+  fr: {
+    title: 'Paramètres',
+    back: 'Retour au tableau de bord',
+    accountSettings: 'Paramètres du compte',
+    nav: { dashboard: 'Tableau de bord', invoices: 'Factures', budgets: 'Budgets', settings: 'Paramètres', ramqAccess: 'Accès RAMQ B2B' },
+    personal: 'Informations personnelles',
+    fields: { prefix: 'Titre', firstName: 'Prénom', lastName: 'Nom', license: 'Numéro de licence', specialty: 'Spécialité', phone: 'Téléphone', email: 'Courriel', address: 'Adresse' },
+    practice: 'Informations de pratique',
+    practiceFields: { name: 'Nom de la pratique', address: "Adresse de la pratique", site: "Site d'appartenance", tax: 'Numéro de taxe' },
+    banking: 'Informations bancaires',
+    bankFields: { bank: 'Nom de la banque', institution: "Numéro d'institution", transit: 'Numéro de transit', account: 'Numéro de compte' },
+    partners: 'Partenaires de facturation',
+    partnerFields: { name: "Nom de l'entreprise", contact: 'Personne-ressource', email: 'Courriel', phone: 'Téléphone' },
+    addPartner: 'Ajouter un partenaire',
+    save: 'Sauvegarder les paramètres',
+    saving: 'Sauvegarde...',
+    loading: 'Chargement...',
+    successSave: 'Paramètres sauvegardés avec succès !',
+    errorSave: 'Erreur lors de la sauvegarde. Veuillez réessayer.',
+    successAdd: 'Partenaire ajouté avec succès !',
+    errorAdd: "Erreur lors de l'ajout du partenaire",
+    successDelete: 'Partenaire supprimé avec succès !',
+    errorDelete: 'Erreur lors de la suppression du partenaire',
+  },
+  en: {
+    title: 'Settings',
+    back: 'Back to Dashboard',
+    accountSettings: 'Account Settings',
+    nav: { dashboard: 'Dashboard', invoices: 'View Invoices', budgets: 'View Budgets', settings: 'Settings', ramqAccess: 'RAMQ B2B Access' },
+    personal: 'Personal Information',
+    fields: { prefix: 'Prefix', firstName: 'First Name', lastName: 'Last Name', license: 'License Number', specialty: 'Specialty', phone: 'Phone', email: 'Email', address: 'Address' },
+    practice: 'Practice Information',
+    practiceFields: { name: 'Practice Name', address: 'Practice Address', site: "Site d'Appartenance", tax: 'Tax Number' },
+    banking: 'Banking Information',
+    bankFields: { bank: 'Bank Name', institution: 'Institution Number', transit: 'Transit Number', account: 'Account Number' },
+    partners: 'Billing Partners',
+    partnerFields: { name: 'Company Name', contact: 'Contact Person', email: 'Email', phone: 'Phone' },
+    addPartner: 'Add Billing Partner',
+    save: 'Save All Settings',
+    saving: 'Saving...',
+    loading: 'Loading settings...',
+    successSave: 'Settings saved successfully!',
+    errorSave: 'Error saving settings. Please try again.',
+    successAdd: 'Billing entity added successfully!',
+    errorAdd: 'Error adding billing entity',
+    successDelete: 'Billing entity deleted successfully!',
+    errorDelete: 'Error deleting billing entity',
+  },
+} as const;
+
 export default function SettingsPage() {
   const supabase = createClient();
+  const [lang] = useLang();
+  const t = T[lang];
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -151,10 +205,10 @@ export default function SettingsPage() {
         }]);
         
         setNewEntity({ name: "", phone: "", email: "", contact: "" });
-        alert('Billing entity added successfully!');
+        alert(t.successAdd);
       } catch (error) {
         console.error('Error adding entity:', error);
-        alert('Error adding billing entity');
+        alert(t.errorAdd);
       }
     }
   };
@@ -169,10 +223,10 @@ export default function SettingsPage() {
       if (error) throw error;
 
       setBillingEntities(billingEntities.filter(e => e.id !== id));
-      alert('Billing entity deleted successfully!');
+      alert(t.successDelete);
     } catch (error) {
       console.error('Error deleting entity:', error);
-      alert('Error deleting billing entity');
+      alert(t.errorDelete);
     }
   };
 
@@ -219,10 +273,10 @@ export default function SettingsPage() {
 
       if (practiceError) throw practiceError;
 
-      alert('Settings saved successfully!');
+      alert(t.successSave);
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('Error saving settings. Please try again.');
+      alert(t.errorSave);
     } finally {
       setSaving(false);
     }
@@ -231,7 +285,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="h-screen bg-black flex items-center justify-center">
-        <div className="text-primary text-xl animate-pulse">Loading settings...</div>
+        <div className="text-primary text-xl animate-pulse">{t.loading}</div>
       </div>
     );
   }
@@ -250,11 +304,11 @@ export default function SettingsPage() {
         <div className="relative z-20 m-6 p-6 bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl flex justify-between items-center shadow-lg">
           <div className="flex items-center gap-4">
             <Image src="/images/meditrackr logo.png" alt="Logo" width={32} height={32} />
-            <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">Settings</h1>
+            <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">{t.title}</h1>
           </div>
           <Link href="/dashboard">
             <Button variant="ghost" className="gap-2 text-primary border border-primary/20 bg-black/40 rounded-xl px-4 h-10">
-              <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+              <ArrowLeft className="w-4 h-4" /> {t.back}
             </Button>
           </Link>
         </div>
@@ -265,23 +319,23 @@ export default function SettingsPage() {
             <nav className="space-y-1">
               <Link href="/dashboard" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all text-white/60">
                 <LayoutDashboard className="w-4 h-4 text-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider">Dashboard</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t.nav.dashboard}</span>
               </Link>
               <Link href="/invoices" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all text-white/60">
                 <FileStack className="w-4 h-4 text-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider">View Invoices</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t.nav.invoices}</span>
               </Link>
               <Link href="/budgets" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all text-white/60">
                 <PieChart className="w-4 h-4 text-green-500" />
-                <span className="text-xs font-bold uppercase tracking-wider">View Budgets</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t.nav.budgets}</span>
               </Link>
               <Link href="/settings" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 text-white shadow-cyan">
                 <Settings className="w-4 h-4 text-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider">Settings</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t.nav.settings}</span>
               </Link>
               <Link href="/settings/ramq-access" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all text-white/60">
                 <ShieldCheck className="w-4 h-4 text-green-400" />
-                <span className="text-xs font-bold uppercase tracking-wider">Accès RAMQ B2B</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t.nav.ramqAccess}</span>
               </Link>
             </nav>
           </aside>
@@ -290,7 +344,7 @@ export default function SettingsPage() {
             
             <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-3 shadow-cyan/20">
               <ClipboardList className="text-primary w-5 h-5" />
-              <h2 className="text-[11px] font-black text-primary uppercase tracking-widest">Account Settings</h2>
+              <h2 className="text-[11px] font-black text-primary uppercase tracking-widest">{t.accountSettings}</h2>
             </div>
 
             {/* PERSONAL INFORMATION */}
@@ -298,41 +352,41 @@ export default function SettingsPage() {
               <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
               <div className="flex items-center gap-3 mb-6">
                 <User className="w-5 h-5 text-primary" />
-                <h3 className="text-sm font-bold text-primary uppercase tracking-widest">Personal Information</h3>
+                <h3 className="text-sm font-bold text-primary uppercase tracking-widest">{t.personal}</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Prefix</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.fields.prefix}</label>
                   <select value={profileData.prefix} onChange={e => handleProfileChange('prefix', e.target.value)} className="w-full bg-black border border-white/10 p-3 rounded-xl text-sm text-white">
                     <option>Dr.</option><option>Mr.</option><option>Ms.</option><option>Mrs.</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">First Name</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.fields.firstName}</label>
                   <input type="text" value={profileData.firstName} onChange={e => handleProfileChange('firstName', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Last Name</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.fields.lastName}</label>
                   <input type="text" value={profileData.lastName} onChange={e => handleProfileChange('lastName', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">License Number</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.fields.license}</label>
                   <input type="text" value={profileData.licenseNumber} onChange={e => handleProfileChange('licenseNumber', e.target.value)} placeholder="CPOM #" className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Specialty</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.fields.specialty}</label>
                   <input type="text" value={profileData.specialty} onChange={e => handleProfileChange('specialty', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Phone</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.fields.phone}</label>
                   <input type="tel" value={profileData.phone} onChange={e => handleProfileChange('phone', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Email</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.fields.email}</label>
                   <input type="email" value={profileData.email} onChange={e => handleProfileChange('email', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="md:col-span-3 space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Address</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.fields.address}</label>
                   <input type="text" value={profileData.address} onChange={e => handleProfileChange('address', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
               </div>
@@ -343,23 +397,23 @@ export default function SettingsPage() {
               <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500" />
               <div className="flex items-center gap-3 mb-6">
                 <Building2 className="text-green-400 w-5 h-5" />
-                <h3 className="text-sm font-bold text-green-400 uppercase tracking-widest">Practice Information</h3>
+                <h3 className="text-sm font-bold text-green-400 uppercase tracking-widest">{t.practice}</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Practice Name</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.practiceFields.name}</label>
                   <input type="text" value={practiceData.practiceName} onChange={e => handlePracticeChange('practiceName', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Practice Address</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.practiceFields.address}</label>
                   <input type="text" value={practiceData.practiceAddress} onChange={e => handlePracticeChange('practiceAddress', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Site d&apos;Appartenance</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.practiceFields.site}</label>
                   <input type="text" value={practiceData.siteAppartenance} onChange={e => handlePracticeChange('siteAppartenance', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Tax Number</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.practiceFields.tax}</label>
                   <input type="text" value={practiceData.taxNumber} onChange={e => handlePracticeChange('taxNumber', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
               </div>
@@ -370,23 +424,23 @@ export default function SettingsPage() {
               <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500" />
               <div className="flex items-center gap-3 mb-6">
                 <CreditCard className="text-green-400 w-5 h-5" />
-                <h3 className="text-sm font-bold text-green-400 uppercase tracking-widest">Banking Information</h3>
+                <h3 className="text-sm font-bold text-green-400 uppercase tracking-widest">{t.banking}</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Bank Name</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.bankFields.bank}</label>
                   <input type="text" value={practiceData.bankName} onChange={e => handlePracticeChange('bankName', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Institution Number</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.bankFields.institution}</label>
                   <input type="text" value={practiceData.institutionNumber} onChange={e => handlePracticeChange('institutionNumber', e.target.value)} maxLength={3} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white font-mono" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Transit Number</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.bankFields.transit}</label>
                   <input type="text" value={practiceData.transitNumber} onChange={e => handlePracticeChange('transitNumber', e.target.value)} maxLength={5} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white font-mono" />
                 </div>
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Account Number</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">{t.bankFields.account}</label>
                   <input type="text" value={practiceData.accountNumber} onChange={e => handlePracticeChange('accountNumber', e.target.value)} className="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white font-mono" />
                 </div>
               </div>
@@ -395,8 +449,8 @@ export default function SettingsPage() {
             {/* BILLING ENTITIES */}
             <div className="card-medical p-8 border border-white/5 bg-black/40 rounded-2xl relative shadow-cyan">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
-              <h3 className="text-sm font-bold text-primary uppercase tracking-widest mb-6">Billing Partners</h3>
-              
+              <h3 className="text-sm font-bold text-primary uppercase tracking-widest mb-6">{t.partners}</h3>
+
               {/* Existing entities */}
               {billingEntities.length > 0 && (
                 <div className="mb-6 space-y-3">
@@ -421,13 +475,13 @@ export default function SettingsPage() {
 
               {/* Add new entity */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <input type="text" placeholder="Company Name" value={newEntity.name} onChange={e => setNewEntity({...newEntity, name: e.target.value})} className="bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
-                <input type="text" placeholder="Contact Person" value={newEntity.contact} onChange={e => setNewEntity({...newEntity, contact: e.target.value})} className="bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
-                <input type="email" placeholder="Email" value={newEntity.email} onChange={e => setNewEntity({...newEntity, email: e.target.value})} className="bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
-                <input type="tel" placeholder="Phone" value={newEntity.phone} onChange={e => setNewEntity({...newEntity, phone: e.target.value})} className="bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
+                <input type="text" placeholder={t.partnerFields.name} value={newEntity.name} onChange={e => setNewEntity({...newEntity, name: e.target.value})} className="bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
+                <input type="text" placeholder={t.partnerFields.contact} value={newEntity.contact} onChange={e => setNewEntity({...newEntity, contact: e.target.value})} className="bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
+                <input type="email" placeholder={t.partnerFields.email} value={newEntity.email} onChange={e => setNewEntity({...newEntity, email: e.target.value})} className="bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
+                <input type="tel" placeholder={t.partnerFields.phone} value={newEntity.phone} onChange={e => setNewEntity({...newEntity, phone: e.target.value})} className="bg-black/40 border border-white/10 p-3 rounded-xl text-sm text-white" />
               </div>
               <Button onClick={addBillingEntity} className="w-full bg-primary/10 text-primary border border-primary/20 h-11">
-                <Plus className="w-4 h-4 mr-2" /> Add Billing Partner
+                <Plus className="w-4 h-4 mr-2" /> {t.addPartner}
               </Button>
             </div>
 
@@ -437,7 +491,7 @@ export default function SettingsPage() {
               disabled={saving}
               className="w-full bg-primary text-black font-black uppercase tracking-[0.3em] h-16 rounded-3xl shadow-cyan active:scale-95 transition-all disabled:opacity-50"
             >
-              <Save className="w-6 h-6 mr-3" /> {saving ? 'Saving...' : 'Save All Settings'}
+              <Save className="w-6 h-6 mr-3" /> {saving ? t.saving : t.save}
             </Button>
           </div>
         </div>

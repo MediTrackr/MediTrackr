@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useLang } from "@/lib/i18n";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -118,6 +119,63 @@ const STATUS_CONFIG: Record<string, {
   },
 };
 
+// ── i18n ─────────────────────────────────────────────────────────────────────
+
+const T = {
+  fr: {
+    title: 'Centre de Facturation RAMQ',
+    claimsCount: (n: number) => `${n} réclamation${n !== 1 ? 's' : ''}`,
+    claimed: 'réclamé',
+    reconciliation: 'Réconciliation',
+    remittance: 'Avis de paiement',
+    newClaim: 'Nouvelle réclamation',
+    back: 'Retour',
+    totalClaimed: 'Réclamé',
+    totalReceived: 'Reçu',
+    gap: 'Écart',
+    loading: 'Chargement...',
+    noClaimsInCategory: 'Aucune réclamation dans cette catégorie',
+    received: 'Reçu',
+    submitted: 'soumis',
+    varianceLabel: 'Écart',
+    sending: 'Envoi...',
+    reconciliationBlock: 'Réconciliation',
+    statusLabels: { paid:'Payé', partial:'Partiel', rejected:'Rejeté', pending:'En attente', review_needed:'À réviser', draft:'Brouillon', submitted:'Soumis', approved:'Approuvé' },
+    tabs: { all:'Tous', pending:'En attente', paid:'Payé', partial:'Partiel', rejected:'Rejeté', review_needed:'À réviser', draft:'Brouillon' },
+    actions: { viewFull:'Fiche complète', submitRAMQ:'Soumettre à la RAMQ', reclaimDraft:'Reprendre en brouillon', markPartial:'Marquer partiel', flagReview:'Flaguer révision', markPaid:'Marquer payé' },
+    errorUpdate: 'Erreur lors de la mise à jour du statut.',
+    invalidClaim: 'Facture NON RECEVABLE :',
+    warnings: 'Avertissements :',
+    continueQ: '\n\nContinuer ?',
+  },
+  en: {
+    title: 'RAMQ Billing Center',
+    claimsCount: (n: number) => `${n} claim${n !== 1 ? 's' : ''}`,
+    claimed: 'claimed',
+    reconciliation: 'Reconciliation',
+    remittance: 'Remittance notice',
+    newClaim: 'New claim',
+    back: 'Back',
+    totalClaimed: 'Claimed',
+    totalReceived: 'Received',
+    gap: 'Gap',
+    loading: 'Loading...',
+    noClaimsInCategory: 'No claims in this category',
+    received: 'Received',
+    submitted: 'submitted',
+    varianceLabel: 'Gap',
+    sending: 'Sending...',
+    reconciliationBlock: 'Reconciliation',
+    statusLabels: { paid:'Paid', partial:'Partial', rejected:'Rejected', pending:'Pending', review_needed:'Review', draft:'Draft', submitted:'Submitted', approved:'Approved' },
+    tabs: { all:'All', pending:'Pending', paid:'Paid', partial:'Partial', rejected:'Rejected', review_needed:'Review', draft:'Draft' },
+    actions: { viewFull:'Full record', submitRAMQ:'Submit to RAMQ', reclaimDraft:'Back to draft', markPartial:'Mark partial', flagReview:'Flag review', markPaid:'Mark paid' },
+    errorUpdate: 'Error updating claim status.',
+    invalidClaim: 'Invalid claim:',
+    warnings: 'Warnings:',
+    continueQ: '\n\nContinue?',
+  },
+} as const;
+
 // Derives the display status for a claim (partial auto-detection)
 function getDisplayStatus(claim: RAMQClaim): string {
   if (claim.status === 'paid') {
@@ -134,13 +192,14 @@ function getDisplayStatus(claim: RAMQClaim): string {
 
 interface SummaryCardProps {
   statusKey: string;
+  label: string;
   count: number;
   amount: number;
   active: boolean;
   onClick: () => void;
 }
 
-function SummaryCard({ statusKey, count, amount, active, onClick }: SummaryCardProps) {
+function SummaryCard({ statusKey, label, count, amount, active, onClick }: SummaryCardProps) {
   const cfg = STATUS_CONFIG[statusKey];
   return (
     <button
@@ -150,7 +209,7 @@ function SummaryCard({ statusKey, count, amount, active, onClick }: SummaryCardP
     >
       <div className="flex items-center gap-2 mb-2">
         {cfg.icon}
-        <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/50">{cfg.label}</span>
+        <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/50">{label}</span>
       </div>
       <p className="text-xl font-black text-white">{count}</p>
       <p className="text-[10px] text-white/30 mt-0.5">${amount.toFixed(2)}</p>
@@ -163,6 +222,8 @@ function SummaryCard({ statusKey, count, amount, active, onClick }: SummaryCardP
 export default function RAMQCommandCenter() {
   const supabase = createClient();
   const router = useRouter();
+  const [lang] = useLang();
+  const t = T[lang];
 
   const [claims, setClaims]       = useState<RAMQClaim[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -255,7 +316,7 @@ export default function RAMQCommandCenter() {
       await fetchClaims();
     } catch (e) {
       console.error('updateStatus', e);
-      alert('Erreur lors de la mise à jour du statut.');
+      alert(t.errorUpdate);
     } finally {
       setUpdating(null);
     }
@@ -272,11 +333,11 @@ export default function RAMQCommandCenter() {
     });
 
     if (!validation.isValid) {
-      alert(`Facture NON RECEVABLE :\n\n${validation.errors.join('\n')}`);
+      alert(`${t.invalidClaim}\n\n${validation.errors.join('\n')}`);
       return;
     }
     if (validation.warnings.length > 0) {
-      if (!window.confirm(`Avertissements :\n\n${validation.warnings.join('\n')}\n\nContinuer ?`)) return;
+      if (!window.confirm(`${t.warnings}\n\n${validation.warnings.join('\n')}${t.continueQ}`)) return;
     }
 
     await updateStatus(claim, 'submitted');
@@ -285,13 +346,13 @@ export default function RAMQCommandCenter() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   const tabs: { key: FilterTab; label: string; count: number }[] = [
-    { key: 'all',          label: 'Tous',         count: claims.length },
-    { key: 'pending',      label: 'En attente',   count: summary.pending.count },
-    { key: 'paid',         label: 'Payé',          count: summary.paid.count },
-    { key: 'partial',      label: 'Partiel',       count: summary.partial.count },
-    { key: 'rejected',     label: 'Rejeté',        count: summary.rejected.count },
-    { key: 'review_needed',label: 'À réviser',     count: summary.review_needed.count },
-    { key: 'draft',        label: 'Brouillon',     count: summary.draft.count },
+    { key: 'all',           label: t.tabs.all,           count: claims.length },
+    { key: 'pending',       label: t.tabs.pending,       count: summary.pending.count },
+    { key: 'paid',          label: t.tabs.paid,          count: summary.paid.count },
+    { key: 'partial',       label: t.tabs.partial,       count: summary.partial.count },
+    { key: 'rejected',      label: t.tabs.rejected,      count: summary.rejected.count },
+    { key: 'review_needed', label: t.tabs.review_needed, count: summary.review_needed.count },
+    { key: 'draft',         label: t.tabs.draft,         count: summary.draft.count },
   ];
 
   return (
@@ -311,30 +372,30 @@ export default function RAMQCommandCenter() {
         {/* Header */}
         <div className="relative z-10 m-6 p-5 bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">Centre de Facturation RAMQ</h1>
+            <h1 className="text-2xl font-black text-primary uppercase italic tracking-tighter">{t.title}</h1>
             <p className="text-[10px] text-white/30 tracking-[0.2em] uppercase mt-0.5">
-              {claims.length} réclamation{claims.length !== 1 ? 's' : ''} · {summary.total_claimed > 0 ? `$${summary.total_claimed.toFixed(2)} réclamé` : ''}
+              {t.claimsCount(claims.length)} · {summary.total_claimed > 0 ? `$${summary.total_claimed.toFixed(2)} ${t.claimed}` : ''}
             </p>
           </div>
           <div className="flex gap-3">
             <Link href="/claims/reconciliation">
               <Button variant="ghost" className="gap-2 text-white/50 border border-white/10 bg-black/40 rounded-xl px-4 h-10 hover:text-white/80 hover:border-white/20">
-                <BarChart3 className="w-4 h-4" /> Réconciliation
+                <BarChart3 className="w-4 h-4" /> {t.reconciliation}
               </Button>
             </Link>
             <Link href="/claims/remittance">
               <Button variant="ghost" className="gap-2 text-white/50 border border-white/10 bg-black/40 rounded-xl px-4 h-10 hover:text-white/80 hover:border-white/20">
-                <FileText className="w-4 h-4" /> Avis de paiement
+                <FileText className="w-4 h-4" /> {t.remittance}
               </Button>
             </Link>
             <Link href="/dashboard/invoice/new">
               <Button className="gap-2 bg-primary text-black rounded-xl px-4 h-10 font-bold hover:bg-primary/90">
-                <Plus className="w-4 h-4" /> Nouvelle réclamation
+                <Plus className="w-4 h-4" /> {t.newClaim}
               </Button>
             </Link>
             <Link href="/dashboard">
               <Button variant="ghost" className="gap-2 text-primary border border-primary/20 bg-black/40 rounded-xl px-4 h-10">
-                <ArrowLeft className="w-4 h-4" /> Retour
+                <ArrowLeft className="w-4 h-4" /> {t.back}
               </Button>
             </Link>
           </div>
@@ -348,6 +409,7 @@ export default function RAMQCommandCenter() {
               <SummaryCard
                 key={key}
                 statusKey={key}
+                label={t.statusLabels[key]}
                 count={summary[key].count}
                 amount={summary[key].amount}
                 active={filter === key}
@@ -357,19 +419,19 @@ export default function RAMQCommandCenter() {
 
             {/* Totals block */}
             <div className="flex-1 min-w-[200px] p-4 rounded-2xl border border-white/8 bg-white/2 flex flex-col justify-between">
-              <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/30 mb-3">Réconciliation</p>
+              <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-white/30 mb-3">{t.reconciliationBlock}</p>
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-white/40">Réclamé</span>
+                  <span className="text-[10px] text-white/40">{t.totalClaimed}</span>
                   <span className="text-sm font-bold text-white">${summary.total_claimed.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-white/40">Reçu</span>
+                  <span className="text-[10px] text-white/40">{t.totalReceived}</span>
                   <span className="text-sm font-bold text-green-400">${summary.total_received.toFixed(2)}</span>
                 </div>
                 <div className="w-full h-px bg-white/8 my-1" />
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-white/40">Écart</span>
+                  <span className="text-[10px] text-white/40">{t.gap}</span>
                   <span className={`text-sm font-bold ${summary.total_claimed - summary.total_received > 0 ? 'text-red-400' : 'text-green-400'}`}>
                     ${Math.abs(summary.total_claimed - summary.total_received).toFixed(2)}
                   </span>
@@ -404,10 +466,10 @@ export default function RAMQCommandCenter() {
           <div className="flex-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
             <div className="h-full overflow-y-auto custom-scrollbar p-6 space-y-3">
               {loading ? (
-                <div className="text-center text-white/30 py-16 text-sm">Chargement...</div>
+                <div className="text-center text-white/30 py-16 text-sm">{t.loading}</div>
               ) : filtered.length === 0 ? (
                 <div className="text-center py-16">
-                  <p className="text-white/30 text-sm">Aucune réclamation dans cette catégorie</p>
+                  <p className="text-white/30 text-sm">{t.noClaimsInCategory}</p>
                 </div>
               ) : (
                 filtered.map(claim => {
@@ -431,7 +493,7 @@ export default function RAMQCommandCenter() {
                             <div className="flex items-center gap-2 flex-wrap mb-1">
                               <span className="font-bold text-white truncate">{claim.patient_name}</span>
                               <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-[0.15em] ${cfg.badge}`}>
-                                {cfg.dot} {cfg.label}
+                                {cfg.dot} {t.statusLabels[ds as keyof typeof t.statusLabels] ?? cfg.label}
                               </span>
                               {claim.claim_number && (
                                 <span className="text-[9px] text-white/25 font-mono">#{claim.claim_number}</span>
@@ -458,7 +520,7 @@ export default function RAMQCommandCenter() {
                             <p className="text-[11px] text-white/40">
                               RAMQ {claim.patient_ramq}
                               {claim.service_date && ` · ${new Date(claim.service_date).toLocaleDateString('fr-CA')}`}
-                              {claim.submitted_at && ` · soumis ${new Date(claim.submitted_at).toLocaleDateString('fr-CA')}`}
+                              {claim.submitted_at && ` · ${t.submitted} ${new Date(claim.submitted_at).toLocaleDateString('fr-CA')}`}
                             </p>
                             {claim.rejection_reason && (
                               <p className="text-[11px] text-red-400/80 mt-1 flex items-center gap-1">
@@ -475,11 +537,11 @@ export default function RAMQCommandCenter() {
                           <p className="text-xl font-black text-primary">${claim.total_claimed?.toFixed(2) ?? '0.00'}</p>
                           {claim.amount_received != null && (
                             <p className={`text-xs font-bold ${claim.amount_received >= claim.total_claimed * 0.99 ? 'text-green-400' : 'text-yellow-400'}`}>
-                              Reçu ${claim.amount_received.toFixed(2)}
+                              {t.received} ${claim.amount_received.toFixed(2)}
                             </p>
                           )}
                           {variance != null && variance > 0.01 && (
-                            <p className="text-[10px] text-red-400">Écart −${variance.toFixed(2)}</p>
+                            <p className="text-[10px] text-red-400">{t.varianceLabel} −${variance.toFixed(2)}</p>
                           )}
                         </div>
 
@@ -529,7 +591,7 @@ export default function RAMQCommandCenter() {
                         <div className="flex flex-wrap gap-2 items-center">
                           <Link href={`/claims/ramq/${claim.id}`}>
                             <Button size="sm" variant="ghost" className="text-primary hover:bg-primary/10 text-xs">
-                              <Eye className="w-3.5 h-3.5 mr-1.5" /> Fiche complète
+                              <Eye className="w-3.5 h-3.5 mr-1.5" /> {t.actions.viewFull}
                             </Button>
                           </Link>
 
@@ -541,7 +603,7 @@ export default function RAMQCommandCenter() {
                               onClick={() => handleSubmit(claim)}
                             >
                               <FileText className="w-3.5 h-3.5 mr-1.5" />
-                              {updating === claim.id ? 'Envoi...' : 'Soumettre à la RAMQ'}
+                              {updating === claim.id ? t.sending : t.actions.submitRAMQ}
                             </Button>
                           )}
 
@@ -552,7 +614,7 @@ export default function RAMQCommandCenter() {
                               disabled={updating === claim.id}
                               onClick={() => updateStatus(claim, 'draft')}
                             >
-                              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Reprendre en brouillon
+                              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> {t.actions.reclaimDraft}
                             </Button>
                           )}
 
@@ -564,7 +626,7 @@ export default function RAMQCommandCenter() {
                                 disabled={updating === claim.id}
                                 onClick={() => updateStatus(claim, 'partial')}
                               >
-                                <AlertTriangle className="w-3.5 h-3.5 mr-1.5" /> Marquer partiel
+                                <AlertTriangle className="w-3.5 h-3.5 mr-1.5" /> {t.actions.markPartial}
                               </Button>
                               <Button
                                 size="sm" variant="ghost"
@@ -572,7 +634,7 @@ export default function RAMQCommandCenter() {
                                 disabled={updating === claim.id}
                                 onClick={() => updateStatus(claim, 'review_needed')}
                               >
-                                <AlertTriangle className="w-3.5 h-3.5 mr-1.5" /> Flaguer révision
+                                <AlertTriangle className="w-3.5 h-3.5 mr-1.5" /> {t.actions.flagReview}
                               </Button>
                               <Button
                                 size="sm" variant="ghost"
@@ -580,7 +642,7 @@ export default function RAMQCommandCenter() {
                                 disabled={updating === claim.id}
                                 onClick={() => updateStatus(claim, 'paid')}
                               >
-                                <CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Marquer payé
+                                <CheckCircle className="w-3.5 h-3.5 mr-1.5" /> {t.actions.markPaid}
                               </Button>
                             </>
                           )}
@@ -592,7 +654,7 @@ export default function RAMQCommandCenter() {
                               disabled={updating === claim.id}
                               onClick={() => updateStatus(claim, 'review_needed')}
                             >
-                              <AlertTriangle className="w-3.5 h-3.5 mr-1.5" /> Flaguer révision
+                              <AlertTriangle className="w-3.5 h-3.5 mr-1.5" /> {t.actions.flagReview}
                             </Button>
                           )}
                           </div>

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useLang } from "@/lib/i18n";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -161,7 +162,7 @@ export default function BatchPage() {
   const supabase = createClient();
   const router   = useRouter();
 
-  const [lang, setLang]         = useState<"fr" | "en">("fr");
+  const [lang, setLang]         = useLang();
   const [claims, setClaims]     = useState<AnyDraftClaim[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [edits, setEdits]       = useState<Record<string, Partial<BaseClaim>>>({});
@@ -326,7 +327,7 @@ export default function BatchPage() {
               <p className="text-white/30 text-[10px] uppercase tracking-widest">{t.subtitle}</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setLang(l => l === "fr" ? "en" : "fr")} className="border-white/10 text-white/50 text-[10px]">
+          <Button variant="outline" size="sm" onClick={() => setLang(lang === "fr" ? "en" : "fr")} className="border-white/10 text-white/50 text-[10px]">
             {lang.toUpperCase()}
           </Button>
         </div>
@@ -402,7 +403,7 @@ export default function BatchPage() {
             />
             <div className="flex items-center gap-6">
               <div className="text-right">
-                <p className="text-[10px] text-white/30 uppercase tracking-widest">Total Sélectionné</p>
+                <p className="text-[10px] text-white/30 uppercase tracking-widest">{lang === "fr" ? "Total sélectionné" : "Total selected"}</p>
                 <p className="text-lg font-black text-primary">{fmt(selectedTotal)}</p>
               </div>
               <Button 
