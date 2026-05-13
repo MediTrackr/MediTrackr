@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, ArrowLeft, Stethoscope, Building2, Building } from "lucide-react";
+import { useLang } from "@/lib/i18n";
 
 const T = {
   fr: {
@@ -204,7 +205,7 @@ const PLAN_ICONS = {
 };
 
 export default function PricingPage() {
-  const [lang, setLang] = useState<"fr" | "en">("fr");
+  const [lang, setLang] = useLang();
   const [annual, setAnnual] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const t = T[lang];
