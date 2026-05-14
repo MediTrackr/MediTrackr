@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Plus, Shield, CheckCircle, XCircle, Clock,
   AlertTriangle, ChevronDown, ChevronUp, Download, Trash2,
-  RefreshCw, FileText, BarChart3, ChevronRight,
+  RefreshCw, FileText, BarChart3, ChevronRight, Banknote as BanknoteIcon,
 } from "lucide-react";
 import { validatePFSIClaim, getPFSIValidationSummary } from "@/utils/pfsi-validator";
 import { ValidationPanel, ValidationBadge } from "@/components/ValidationPanel";
@@ -70,7 +70,9 @@ const STATUS_CONFIG: Record<string, { label: string; badge: string; border: stri
   review_needed: { label: 'À réviser',   badge: 'text-purple-400 bg-purple-500/10 border-purple-500/30', border: 'border-purple-500/40', card: 'bg-purple-500/5', icon: <AlertTriangle className="w-4 h-4 text-purple-400" /> },
   draft:         { label: 'Brouillon',   badge: 'text-white/40 bg-white/5 border-white/10',             border: 'border-white/10',      card: 'bg-white/2',      icon: <FileText className="w-4 h-4 text-white/30" /> },
   submitted:     { label: 'Soumis',      badge: 'text-blue-400 bg-blue-500/10 border-blue-500/30',      border: 'border-blue-500/40',   card: 'bg-blue-500/5',   icon: <Clock className="w-4 h-4 text-blue-400" /> },
-  approved:      { label: 'Approuvé',    badge: 'text-blue-400 bg-blue-500/10 border-blue-500/30',      border: 'border-blue-500/40',   card: 'bg-blue-500/5',   icon: <Clock className="w-4 h-4 text-blue-400" /> },
+  approved:               { label: 'Approuvé',                badge: 'text-blue-400 bg-blue-500/10 border-blue-500/30',     border: 'border-blue-500/40',   card: 'bg-blue-500/5',   icon: <Clock className="w-4 h-4 text-blue-400" /> },
+  deposit_received:       { label: 'Dépôt reçu',             badge: 'text-amber-400 bg-amber-500/10 border-amber-500/30',   border: 'border-amber-500/40',  card: 'bg-amber-500/5',  icon: <BanknoteIcon className="w-4 h-4 text-amber-400" /> },
+  reconciliation_pending: { label: 'Réconciliation en cours', badge: 'text-orange-400 bg-orange-500/10 border-orange-500/30', border: 'border-orange-500/40', card: 'bg-orange-500/5', icon: <RefreshCw className="w-4 h-4 text-orange-400" /> },
 };
 
 function getDisplayStatus(claim: PFSIClaim): string {

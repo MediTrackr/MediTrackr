@@ -7,7 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Plus, Eye, FileText, CheckCircle, XCircle,
-  Clock, AlertTriangle, RefreshCw, ChevronDown, ChevronUp, BarChart3,
+  Clock, AlertTriangle, RefreshCw, ChevronDown, ChevronUp, BarChart3, Banknote as BanknoteIcon,
 } from "lucide-react";
 import { validateRAMQClaim, getValidationSummary, ActCode } from "@/utils/ramq-adjudicator";
 import { ValidationPanel, ValidationBadge } from "@/components/ValidationPanel";
@@ -116,6 +116,22 @@ const STATUS_CONFIG: Record<string, {
     border: 'border-blue-500/40',
     card: 'bg-blue-500/5',
     icon: <Clock className="w-4 h-4 text-blue-400" />,
+  },
+  deposit_received: {
+    label: 'Dépôt reçu',
+    dot: '🟡',
+    badge: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+    border: 'border-amber-500/40',
+    card: 'bg-amber-500/5',
+    icon: <BanknoteIcon className="w-4 h-4 text-amber-400" />,
+  },
+  reconciliation_pending: {
+    label: 'Réconciliation en cours',
+    dot: '🟡',
+    badge: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+    border: 'border-orange-500/40',
+    card: 'bg-orange-500/5',
+    icon: <RefreshCw className="w-4 h-4 text-orange-400" />,
   },
 };
 
